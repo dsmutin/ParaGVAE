@@ -3,16 +3,16 @@ channels:
   - conda-forge
   - nodefaults
 dependencies:
-  - python=3.12
-  - setuptools
-  - pytest
-  - pytest-cov
-  - numpy
-  - scipy
-  - scikit-learn
-  - pyyaml
-  - pandas
-  - altair
-  - vl-convert-python
+  - python=3.12.14
+  - setuptools=84.0.0
+  - pytest=9.1.1
+  - pytest-cov=7.1.0
+  - numpy=2.5.3
+  - scipy=1.18.1
+  - scikit-learn=1.9.1
+  - pyyaml=6.0.3
+  - pandas=3.0.6
+  - altair=6.2.2
+  - vl-convert-python=2.0.0rc7
 variables:
   PYTHONPATH: src
