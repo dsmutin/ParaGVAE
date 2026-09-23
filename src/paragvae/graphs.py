@@ -63,9 +63,12 @@ def cgt_from_csr(
     features = np.asarray(node_features, dtype=np.float32)
     if features.ndim != 2:
         raise ValueError("node features must be 2-d")
-    weights = np.ones(matrix.nnz, dtype=np.float32) if edge_weight is None else np.asarray(edge_weight, dtype=np.float32)
-    if weights.shape != (matrix.nnz,):
+    if edge_weight is None:
         weights = np.ones(matrix.nnz, dtype=np.float32)
+    else:
+        weights = np.asarray(edge_weight, dtype=np.float32).reshape(-1)
+        if weights.shape != (matrix.nnz,):
+            raise ValueError(f"edge weight length {weights.shape[0]} does not match {matrix.nnz} edges")
     colors = _empty_colors(n) if node_colors is None else np.asarray(node_colors, dtype=np.uint8)
     if colors.shape[0] != n:
         raise ValueError("node colour rows must match the node count")
@@ -109,9 +112,9 @@ def cgt_from_csr(
 def _label_vector(path: Path, node_ids: list[str]) -> np.ndarray:
     """Map VAEGbin ``node_to_label.npy`` (dict or vector) onto dense ids.
 
-    The dict is pickled. Values that are already integers stay integers.
-    Missing nodes are ``-1`` and are ignored by ARI only if every node is
-    labelled; contig F1 skips negative labels.
+    The dict is pickled and keyed by node name. A missing name becomes ``-1``.
+    ``load_vaegbin_bundle`` rejects any ``-1`` instead of training on it.
+    Integer keys are not used as row positions.
     """
     raw = np.load(path, allow_pickle=True)
     if getattr(raw, "dtype", None) != object:
@@ -122,7 +125,7 @@ def _label_vector(path: Path, node_ids: list[str]) -> np.ndarray:
     vocab: dict[object, int] = {}
     codes = np.empty(len(node_ids), dtype=np.int64)
     for index, node_id in enumerate(node_ids):
-        value = payload.get(node_id, payload.get(index))
+        value = payload.get(node_id)
         if isinstance(value, (int, np.integer)):
             codes[index] = int(value)
             continue
@@ -133,6 +136,13 @@ def _label_vector(path: Path, node_ids: list[str]) -> np.ndarray:
             vocab[value] = len(vocab)
         codes[index] = vocab[value]
     return codes
+
+
+def _check_row_counts(name: str, n_nodes: int, **lengths: int) -> None:
+    """Require every node-aligned array to have one row per adjacency node."""
+    for column, length in lengths.items():
+        if int(length) != int(n_nodes):
+            raise ValueError(f"{name}: {column} has length {length}, adjacency has {n_nodes} nodes")
 
 
 def load_vaegbin_bundle(root: str | Path, name: str | None = None) -> StudyGraph:
@@ -154,7 +164,20 @@ def load_vaegbin_bundle(root: str | Path, name: str | None = None) -> StudyGraph
     raw = np.hstack([kmer, depth]).astype(np.float32)
     names = np.load(folder / "node_names.npy", allow_pickle=True)
     node_ids = [str(item) for item in names.tolist()]
+    _check_row_counts(
+        label,
+        adjacency.shape[0],
+        node_features=vae.shape[0],
+        kmer=kmer.shape[0],
+        depth=depth.shape[0],
+        node_names=len(node_ids),
+    )
+    if adjacency.shape[0] != adjacency.shape[1]:
+        raise ValueError(f"{label}: adjacency shape {adjacency.shape} is not square")
     labels = _label_vector(folder / "node_to_label.npy", node_ids)
+    missing = int(np.sum(labels < 0))
+    if missing:
+        raise ValueError(f"{label}: {missing} nodes are absent from node_to_label.npy")
     pairs_path = folder / "all_different.npy"
     if pairs_path.is_file():
         pairs = np.load(pairs_path)
