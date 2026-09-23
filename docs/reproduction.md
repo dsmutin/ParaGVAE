@@ -2,7 +2,7 @@
 
 Historical May 2026 runs lived in `AIRI_may` and mixed three scores (internal contig F1, AMBER `f1_score_seq`, taxonomy macro-F1). This repository repeats the **direction** of each hypothesis on MetaMetro tensors with one shared score:
 
-- embedding from a 2-layer GCN compiled in `cpp/gcn_train.cpp`, early-stopped on held-out edge loss (`max_epochs=60`, `patience=8`, learning rate 0.05)
+- embedding from a 2-layer GCN compiled in `cpp/gcn_train.cpp`, early-stopped on held-out undirected edges (`max_epochs=60`, `patience=8`, learning rate 0.05). Those edges are removed from the propagation operator. A stored reverse edge is the same edge, not a second sample.
 - bins from k-means unless the clustering hypothesis says otherwise
 - `k` = number of ground-truth genomes (same `k` for every arm)
 - contig F1 = majority-genome overlap; ARI from scikit-learn

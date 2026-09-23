@@ -3,8 +3,9 @@
 // epoch loop, which is the long stage on the larger assembly graphs.
 //
 // Job directory (little-endian host):
-//   meta.txt: n d e n_pos n_mark max_epochs patience seed hidden latent loss lr
-//   indptr.i32 indices.i32 values.f32 features.f32 pos.i32 mark.i32
+//   meta.txt: n d e n_pos n_val n_mark max_epochs patience seed hidden latent loss lr
+//   indptr.i32 indices.i32 values.f32 features.f32 pos.i32 val.i32 mark.i32
+// pos.i32 is the training edges. val.i32 is held out and must not be in the CSR.
 // Writes result.txt and embedding.f32.
 
 #include <algorithm>
@@ -24,6 +25,7 @@ struct Meta {
   int d = 0;
   int e = 0;
   int n_pos = 0;
+  int n_val = 0;
   int n_mark = 0;
   int max_epochs = 25;
   int patience = 5;
@@ -119,8 +121,8 @@ int main(int argc, char** argv) {
       if (!in) {
         throw std::runtime_error("missing meta.txt");
       }
-      in >> meta.n >> meta.d >> meta.e >> meta.n_pos >> meta.n_mark >> meta.max_epochs >> meta.patience >>
-          meta.seed >> meta.hidden >> meta.latent >> meta.loss >> meta.lr;
+      in >> meta.n >> meta.d >> meta.e >> meta.n_pos >> meta.n_val >> meta.n_mark >> meta.max_epochs >>
+          meta.patience >> meta.seed >> meta.hidden >> meta.latent >> meta.loss >> meta.lr;
     }
     if (meta.n <= 0 || meta.d <= 0) {
       throw std::runtime_error("empty graph");
@@ -132,33 +134,24 @@ int main(int argc, char** argv) {
     auto values = read_vec<float>(root + "/values.f32", meta.e);
     auto features = read_vec<float>(root + "/features.f32", meta.n * meta.d);
     auto pos = read_vec<int>(root + "/pos.i32", std::max(meta.n_pos, 0) * 2);
+    auto val = read_vec<int>(root + "/val.i32", std::max(meta.n_val, 0) * 2);
     auto mark = read_vec<int>(root + "/mark.i32", std::max(meta.n_mark, 0) * 2);
 
     std::mt19937 rng(static_cast<unsigned>(meta.seed));
-    std::vector<int> order(meta.n_pos);
-    for (int i = 0; i < meta.n_pos; ++i) {
-      order[i] = i;
-    }
-    std::shuffle(order.begin(), order.end(), rng);
-    int n_val = 0;
-    int n_train = meta.n_pos;
-    if (meta.n_pos >= 8) {
-      n_val = std::max(1, meta.n_pos / 5);
-      n_train = meta.n_pos - n_val;
-    }
     std::vector<int> train_i, train_j, val_i, val_j;
-    for (int t = 0; t < n_train; ++t) {
-      train_i.push_back(pos[order[t] * 2]);
-      train_j.push_back(pos[order[t] * 2 + 1]);
+    for (int t = 0; t < meta.n_pos; ++t) {
+      train_i.push_back(pos[t * 2]);
+      train_j.push_back(pos[t * 2 + 1]);
     }
-    for (int t = n_train; t < n_train + n_val; ++t) {
-      val_i.push_back(pos[order[t] * 2]);
-      val_j.push_back(pos[order[t] * 2 + 1]);
+    for (int t = 0; t < meta.n_val; ++t) {
+      val_i.push_back(val[t * 2]);
+      val_j.push_back(val[t * 2 + 1]);
     }
+    int n_val = meta.n_val;
     if (n_val == 0) {
       val_i = train_i;
       val_j = train_j;
-      n_val = n_train;
+      n_val = static_cast<int>(train_i.size());
     }
     std::uniform_int_distribution<int> node_draw(0, meta.n - 1);
     auto draw_neg = [&](int count, std::vector<int>& left, std::vector<int>& right) {

@@ -31,22 +31,96 @@ def _zscore(matrix: np.ndarray) -> np.ndarray:
     return (values - center) / scale
 
 
-def normalized_adjacency(indptr: np.ndarray, indices: np.ndarray, n: int) -> sparse.csr_matrix:
-    """Symmetric normalized adjacency with self-loops. Sparse, not N×N dense storage as the model input."""
+def undirected_edges(
+    indptr: np.ndarray,
+    indices: np.ndarray,
+    edge_weight: np.ndarray | None = None,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Unique edges with ``i < j``. Self-loops are dropped.
+
+    Opposite directions of the same edge are averaged when ``edge_weight``
+    is given. A length mismatch is an error.
+    """
+    indptr = np.asarray(indptr)
+    indices = np.asarray(indices, dtype=np.int64)
+    n = len(indptr) - 1
     rows = np.repeat(np.arange(n, dtype=np.int64), np.diff(indptr))
-    data = np.ones(indices.shape[0], dtype=np.float32)
-    directed = sparse.csr_matrix((data, (rows, indices)), shape=(n, n))
-    undirected = directed.maximum(directed.T).tocsr()
-    undirected.setdiag(0)
-    undirected.eliminate_zeros()
-    undirected.setdiag(1)
-    undirected = undirected.tocsr()
+    if rows.shape[0] != indices.shape[0]:
+        raise ValueError(f"CSR indices length {indices.shape[0]} does not match indptr nnz {rows.shape[0]}")
+    if edge_weight is None:
+        weights = np.ones(rows.shape[0], dtype=np.float64)
+    else:
+        weights = np.asarray(edge_weight, dtype=np.float64).reshape(-1)
+        if weights.shape[0] != rows.shape[0]:
+            raise ValueError(f"edge weight length {weights.shape[0]} does not match {rows.shape[0]} edges")
+    keep = rows != indices
+    rows, cols, weights = rows[keep], indices[keep], weights[keep]
+    if rows.size == 0:
+        return np.zeros((0, 2), dtype=np.int64), np.zeros(0, dtype=np.float32)
+    lo = np.minimum(rows, cols)
+    hi = np.maximum(rows, cols)
+    order = np.lexsort((hi, lo))
+    lo, hi, weights = lo[order], hi[order], weights[order]
+    change = np.empty(lo.size, dtype=bool)
+    change[0] = True
+    change[1:] = (lo[1:] != lo[:-1]) | (hi[1:] != hi[:-1])
+    starts = np.flatnonzero(change)
+    sums = np.add.reduceat(weights, starts)
+    counts = np.diff(np.append(starts, lo.size))
+    pairs = np.stack([lo[starts], hi[starts]], axis=1).astype(np.int64)
+    return pairs, (sums / counts).astype(np.float32)
+
+
+def split_edges(
+    pairs: np.ndarray,
+    weights: np.ndarray,
+    seed: int,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """Hold out one fifth of undirected edges. Fewer than 8 edges are not split."""
+    n_edges = int(pairs.shape[0])
+    if n_edges < 8:
+        return pairs, weights, pairs.copy(), weights.copy()
+    rng = np.random.default_rng(seed)
+    perm = rng.permutation(n_edges)
+    n_val = max(1, n_edges // 5)
+    val_at = perm[:n_val]
+    train_at = perm[n_val:]
+    return pairs[train_at], weights[train_at], pairs[val_at], weights[val_at]
+
+
+def normalized_from_edges(pairs: np.ndarray, weights: np.ndarray, n: int) -> sparse.csr_matrix:
+    """Symmetric normalized adjacency of ``pairs`` plus self-loops."""
+    if pairs.shape[0] == 0:
+        undirected = sparse.eye(n, format="csr", dtype=np.float32)
+    else:
+        rows = np.concatenate([pairs[:, 0], pairs[:, 1]])
+        cols = np.concatenate([pairs[:, 1], pairs[:, 0]])
+        data = np.concatenate([weights, weights]).astype(np.float32)
+        undirected = sparse.csr_matrix((data, (rows, cols)), shape=(n, n))
+        undirected.sum_duplicates()
+        undirected.setdiag(0)
+        undirected.eliminate_zeros()
+        undirected.setdiag(1)
+        undirected = undirected.tocsr()
     degree = np.asarray(undirected.sum(axis=1)).ravel()
     inverse = np.zeros_like(degree, dtype=np.float32)
     nonzero = degree > 0
     inverse[nonzero] = np.power(degree[nonzero], -0.5).astype(np.float32)
     scaled = sparse.diags(inverse) @ undirected @ sparse.diags(inverse)
     return scaled.tocsr().astype(np.float32)
+
+
+def normalized_adjacency(
+    indptr: np.ndarray,
+    indices: np.ndarray,
+    n: int,
+    edge_weight: np.ndarray | None = None,
+) -> sparse.csr_matrix:
+    """Symmetric normalized adjacency with self-loops. Sparse, not an N×N dense matrix."""
+    pairs, weights = undirected_edges(indptr, indices, edge_weight)
+    if edge_weight is None:
+        weights = np.ones(pairs.shape[0], dtype=np.float32)
+    return normalized_from_edges(pairs, weights, n)
 
 
 def knn_adjacency(features: np.ndarray, k: int = 5) -> sparse.csr_matrix:
@@ -86,11 +160,6 @@ def _bce_logits(logit: np.ndarray, target: float) -> tuple[float, np.ndarray]:
     return float(np.mean(loss)), grad
 
 
-def _edge_ends(indptr: np.ndarray, indices: np.ndarray) -> np.ndarray:
-    rows = np.repeat(np.arange(len(indptr) - 1, dtype=np.int64), np.diff(indptr))
-    return np.stack([rows, indices], axis=1)
-
-
 class _Adam:
     def __init__(self, lr: float = 0.01) -> None:
         self.lr = lr
@@ -120,6 +189,7 @@ def train_gcn(
     indptr: np.ndarray,
     indices: np.ndarray,
     different_pairs: np.ndarray | None = None,
+    edge_weight: np.ndarray | None = None,
     loss: str = "standard",
     max_epochs: int = 30,
     patience: int = 5,
@@ -141,18 +211,12 @@ def train_gcn(
     if width == 0:
         features = np.ones((n, 1), dtype=np.float32)
         width = 1
-    adjacency = normalized_adjacency(indptr, indices, n)
-    ends = _edge_ends(indptr, indices)
-    ends = ends[ends[:, 0] != ends[:, 1]]
+    pairs, weights = undirected_edges(indptr, indices, edge_weight)
+    if edge_weight is None:
+        weights = np.ones(pairs.shape[0], dtype=np.float32)
+    train_ends, train_weights, val_ends, _val_weights = split_edges(pairs, weights, seed)
+    adjacency = normalized_from_edges(train_ends, train_weights, n)
     rng = np.random.default_rng(seed)
-    if ends.shape[0] >= 8:
-        perm = rng.permutation(ends.shape[0])
-        cut = max(1, int(0.2 * ends.shape[0]))
-        val_ends = ends[perm[:cut]]
-        train_ends = ends[perm[cut:]]
-    else:
-        train_ends = ends
-        val_ends = ends
     hidden = int(min(hidden, max(4, width * 2)))
     latent = int(min(latent, hidden))
     w0 = _init(rng, width, hidden)
@@ -223,23 +287,7 @@ def train_gcn(
         opt.t = epoch + 1
         epochs = epoch + 1
         hidden_state, latent_state, pre_h = embed(w0, w1)
-        if loss == "contrastive":
-            # one random neighbour per node that has an edge
-            degree = np.diff(indptr)
-            sources = np.flatnonzero(degree > 0)
-            if sources.size == 0:
-                positive = train_ends
-            else:
-                pick = sources if sources.size <= 512 else rng.choice(sources, size=512, replace=False)
-                chosen = []
-                for node in pick:
-                    start, stop = int(indptr[node]), int(indptr[node + 1])
-                    target = int(indices[int(rng.integers(start, stop))])
-                    if target != int(node):
-                        chosen.append((int(node), target))
-                positive = np.asarray(chosen, dtype=np.int64).reshape(-1, 2) if chosen else train_ends
-        else:
-            positive = train_ends
+        positive = train_ends
         train_value, grad_z = pair_loss(latent_state, positive)
         last_train = train_value
         # Z = A @ (H @ W1)

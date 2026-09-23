@@ -7,7 +7,7 @@ from pathlib import Path
 
 import numpy as np
 
-from paragvae.train import TrainResult, _zscore, normalized_adjacency
+from paragvae.train import TrainResult, _zscore, normalized_from_edges, split_edges, undirected_edges
 
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "cpp" / "gcn_train.cpp"
@@ -28,20 +28,13 @@ def ensure_binary() -> Path:
     return BINARY
 
 
-def _edge_list(indptr: np.ndarray, indices: np.ndarray) -> np.ndarray:
-    rows = np.repeat(np.arange(len(indptr) - 1, dtype=np.int32), np.diff(indptr))
-    cols = np.asarray(indices, dtype=np.int32)
-    pairs = np.stack([rows, cols], axis=1)
-    pairs = pairs[pairs[:, 0] != pairs[:, 1]]
-    return pairs
-
-
 def train_gcn_native(
     *,
     features: np.ndarray,
     indptr: np.ndarray,
     indices: np.ndarray,
     different_pairs: np.ndarray | None,
+    edge_weight: np.ndarray | None = None,
     loss: str,
     max_epochs: int,
     patience: int,
@@ -56,10 +49,15 @@ def train_gcn_native(
     scaled = _zscore(features)
     if scaled.shape[1] == 0:
         scaled = np.ones((scaled.shape[0], 1), dtype=np.float32)
-    operator = normalized_adjacency(indptr, indices, scaled.shape[0]).tocsr()
+    pairs, weights = undirected_edges(indptr, indices, edge_weight)
+    if edge_weight is None:
+        weights = np.ones(pairs.shape[0], dtype=np.float32)
+    train_edges, train_weights, val_edges, _val_weights = split_edges(pairs, weights, seed)
+    operator = normalized_from_edges(train_edges, train_weights, scaled.shape[0])
     operator.sum_duplicates()
     operator.sort_indices()
-    positives = _edge_list(np.asarray(indptr, dtype=np.int64), np.asarray(indices, dtype=np.int64))
+    positives = np.asarray(train_edges, dtype=np.int32)
+    validation = np.asarray(val_edges, dtype=np.int32)
     marker = np.zeros((0, 2), dtype=np.int32) if different_pairs is None else np.asarray(different_pairs, dtype=np.int64)
     if marker.size:
         n = scaled.shape[0]
@@ -73,10 +71,11 @@ def train_gcn_native(
     (work / "values.f32").write_bytes(np.asarray(operator.data, dtype=np.float32).tobytes())
     (work / "features.f32").write_bytes(np.asarray(scaled, dtype=np.float32).tobytes())
     (work / "pos.i32").write_bytes(np.asarray(positives, dtype=np.int32).reshape(-1).tobytes())
+    (work / "val.i32").write_bytes(np.asarray(validation, dtype=np.int32).reshape(-1).tobytes())
     (work / "mark.i32").write_bytes(marker.reshape(-1).tobytes())
     (work / "meta.txt").write_text(
-        f"{scaled.shape[0]} {scaled.shape[1]} {operator.nnz} {positives.shape[0]} {marker.shape[0]} "
-        f"{max_epochs} {patience} {seed} {hidden} {latent} {_LOSS[loss]} 0.05\n",
+        f"{scaled.shape[0]} {scaled.shape[1]} {operator.nnz} {positives.shape[0]} {validation.shape[0]} "
+        f"{marker.shape[0]} {max_epochs} {patience} {seed} {hidden} {latent} {_LOSS[loss]} 0.05\n",
         encoding="utf-8",
     )
     subprocess.run([str(binary), str(work)], check=True)
