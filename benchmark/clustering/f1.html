@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    #vis.vega-embed {
+      width: 100%;
+      display: flex;
+    }
+
+    #vis.vega-embed details,
+    #vis.vega-embed details summary {
+      position: relative;
+    }
+  </style>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega@6"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega-lite@6.4.1"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega-embed@7"></script>
+</head>
+<body>
+  <div id="vis"></div>
+  <script>
+    (function(vegaEmbed) {
+      var spec = {"config": {"view": {"continuousWidth": 300, "continuousHeight": 300}}, "data": {"values": [{"dataset": "metametro_bubble", "arm": "kmeans", "f1": 0.75, "f1_std": 0.0, "ari": -0.2, "epochs": 31.5}, {"dataset": "metametro_bubble", "arm": "agglomerative", "f1": 0.75, "f1_std": 0.0, "ari": -0.2, "epochs": 31.5}, {"dataset": "strong100", "arm": "kmeans", "f1": 0.252934, "f1_std": 0.036972000000000005, "ari": 0.30086100000000005, "epochs": 55.5}, {"dataset": "strong100", "arm": "agglomerative", "f1": 0.254108, "f1_std": 0.085094, "ari": 0.329333, "epochs": 55.5}, {"dataset": "ont100m", "arm": "kmeans", "f1": 0.2140995, "f1_std": 0.03916449999999999, "ari": 0.112603, "epochs": 25.5}, {"dataset": "ont100m", "arm": "agglomerative", "f1": 0.2558745, "f1_std": 0.02349849999999999, "ari": 0.022947000000000002, "epochs": 25.5}, {"dataset": "ont1b", "arm": "kmeans", "f1": 0.4476985, "f1_std": 0.06694549999999999, "ari": 0.2753, "epochs": 41.0}, {"dataset": "ont1b", "arm": "agglomerative", "f1": 0.374477, "f1_std": 0.01882800000000001, "ari": 0.0648885, "epochs": 41.0}, {"dataset": "illumina", "arm": "kmeans", "f1": 0.1740275, "f1_std": 0.021303500000000003, "ari": 0.08094599999999999, "epochs": 60.0}, {"dataset": "illumina", "arm": "agglomerative", "f1": 0.21857949999999998, "f1_std": 0.008657499999999999, "ari": 0.0101525, "epochs": 60.0}]}, "facet": {"column": {"field": "dataset", "title": null, "type": "nominal"}}, "spec": {"layer": [{"mark": {"type": "bar"}, "encoding": {"color": {"field": "dataset", "title": "Dataset", "type": "nominal"}, "x": {"field": "arm", "sort": null, "title": null, "type": "nominal"}, "y": {"field": "f1", "title": "Contig F1", "type": "quantitative"}}}, {"mark": {"type": "errorbar"}, "encoding": {"x": {"field": "arm", "sort": null, "type": "nominal"}, "y": {"field": "f1", "title": "Contig F1", "type": "quantitative"}, "yError": {"field": "f1_std"}}}], "height": 160, "width": 120}, "resolve": {"scale": {"y": "shared"}}, "$schema": "https://vega.github.io/schema/vega-lite/v6.4.1.json"};
+      var embedOpt = {"mode": "vega-lite"};
+
+      function showError(el, error){
+          el.innerHTML = ('<div style="color:red;">'
+                          + '<p>JavaScript Error: ' + error.message + '</p>'
+                          + "<p>This usually means there's a typo in your chart specification. "
+                          + "See the javascript console for the full traceback.</p>"
+                          + '</div>');
+          throw error;
+      }
+      const el = document.getElementById('vis');
+      vegaEmbed("#vis", spec, embedOpt)
+        .catch(error => showError(el, error));
+    })(vegaEmbed);
+
+  </script>
+</body>
+</html>

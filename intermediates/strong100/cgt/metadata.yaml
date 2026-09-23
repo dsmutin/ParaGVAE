@@ -1,0 +1,47 @@
+schema_version: '1.0'
+num_nodes: 852
+num_edges: 1100
+node_feature_names:
+- f0
+- f1
+- f2
+- f3
+- f4
+- f5
+- f6
+- f7
+- f8
+- f9
+- f10
+- f11
+- f12
+- f13
+- f14
+- f15
+- f16
+- f17
+- f18
+- f19
+- f20
+- f21
+- f22
+- f23
+- f24
+- f25
+- f26
+- f27
+- f28
+- f29
+- f30
+- f31
+edge_feature_names:
+- weight
+node_feature_dtype: float32
+edge_feature_dtype: float32
+topology: csr
+contract: cdbg_to_cgt
+contract_version: '1.0'
+source:
+  format: vaegbin_bundle
+  graph_id: strong100
+  note: VAEGbin assembly graph; colours filled later by the colouring arm
