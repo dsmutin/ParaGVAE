@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import csv
+import os
 import platform
 import subprocess
 import sys
@@ -36,7 +37,8 @@ def write_provenance(dest: Path, hypothesis: str, config: dict) -> None:
     import numpy
     import sklearn
 
-    compiler = subprocess.run(["g++", "--version"], capture_output=True, text=True)
+    compiler_bin = os.environ.get("CXX") or "g++"
+    compiler = subprocess.run([compiler_bin, "--version"], capture_output=True, text=True)
     compiler_line = compiler.stdout.splitlines()[0] if compiler.returncode == 0 and compiler.stdout else "g++ not found"
     metametro = Path(config["metametro_src"])
     lines = [
