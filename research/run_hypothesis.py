@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run one hypothesis folder: ``python research/run_hypothesis.py joint_training``."""
+"""Run one hypothesis folder: ``python research/run_hypothesis.py feature_source``."""
 
 from __future__ import annotations
 

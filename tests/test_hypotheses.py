@@ -12,7 +12,7 @@ pytestmark = pytest.mark.mandatory
 def test_hypothesis_folders_are_stable() -> None:
     """Research folders match the historical questions, one factor at a time."""
     assert HYPOTHESES == (
-        "joint_training",
+        "feature_source",
         "loss",
         "coloring",
         "graph_type",

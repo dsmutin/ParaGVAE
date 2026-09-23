@@ -13,7 +13,7 @@ That F1 is **not** AMBER. VAMB is not re-run. Absolute numbers will not match `r
 
 | Folder | Question | Comparison |
 |---|---|---|
-| `research/joint_training` | Train on frozen VAE latents or on raw k-mer+depth | `frozen_vae` vs `joint_raw` |
+| `research/feature_source` | Frozen VAE latent versus raw k-mer+depth. Not end-to-end joint training | `vae_latent` vs `raw_features` |
 | `research/loss` | Unsupervised objective | `standard`, `diff_c`, `proxy`, `contrastive` (InfoNCE, 8 negatives) |
 | `research/coloring` | Add CGT colour channels | `uncoloured` vs `cgt_colors` |
 | `research/graph_type` | Assembly edges vs feature kNN | `assembly`, `knn_vae`, `knn_kmer` |
@@ -28,7 +28,7 @@ That F1 is **not** AMBER. VAMB is not re-run. Absolute numbers will not match `r
 
 ```bash
 conda activate paragvae
-python research/run_hypothesis.py joint_training
+python research/run_hypothesis.py feature_source
 ```
 
 Seeds are 0 and 1.

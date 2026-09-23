@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Finish hypotheses after joint_training and redraw that chart."""
+"""Finish hypotheses after feature_source and redraw that chart."""
 
 from __future__ import annotations
 
@@ -25,12 +25,12 @@ def _redraw(name: str) -> None:
 
 def run() -> None:
     """Reload cached graphs and run every hypothesis except the finished one."""
-    _redraw("joint_training")
-    print("redrew joint_training", flush=True)
+    _redraw("feature_source")
+    print("redrew feature_source", flush=True)
     config = load_config()
     graphs = load_graphs(config)
     for name in HYPOTHESES:
-        if name == "joint_training":
+        if name == "feature_source":
             continue
         print(f"=== {name} ===", flush=True)
         print(main(name, graphs=graphs, config=config), flush=True)

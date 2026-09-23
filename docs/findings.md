@@ -8,9 +8,9 @@ Score: contig F1 and ARI after k-means, unless the clustering folder says otherw
 
 Charts: `benchmark/<hypothesis>/f1.html`.
 
-## Joint training
+## Feature source
 
-Only Strong100 has a 32-d VAE latent distinct from k-mer+depth. There, training on the raw matrix scored higher contig F1 than the frozen latent (0.313 vs 0.253). On ONT 100M, ONT 1B, Illumina, and the MetaMetro bubble the two matrices are the same file contents, so the arms match exactly. The May 2026 AMBER test did not find a significant gain for joint fine-tuning; this protocol is a different score and only separates the arms on Strong100.
+This arm compares a frozen VAE latent with raw k-mer and depth. It is not end-to-end VAE+GCN training. Only Strong100 has a 32-d latent distinct from k-mer+depth. There, training on the raw matrix scored higher contig F1 than the frozen latent (0.313 vs 0.253). On ONT 100M, ONT 1B, Illumina, and the MetaMetro bubble the two matrices are the same file contents, so the arms match exactly. The May 2026 AMBER test did not find a significant gain for joint fine-tuning; this protocol is a different score and only separates the arms on Strong100.
 
 ## Loss
 
