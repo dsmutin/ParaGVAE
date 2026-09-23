@@ -1,5 +1,9 @@
 # Hypothesis checks on CGT tensors
 
+The numbers below were scored before the contig-F1 matching fix and are not valid. They will be replaced by a rerun.
+
+
+
 Score: contig F1 and ARI after k-means, unless the clustering folder says otherwise. `k` is the number of ground-truth genomes. This is not AMBER `f1_score_seq`, and VAMB is not rerun. Means are over seeds 0 and 1. Several Strong100 and Illumina fits hit the 60-epoch cap while validation loss was still falling, so those rows are a shared budget, not a fully stopped optimum.
 
 Charts: `benchmark/<hypothesis>/f1.html`.

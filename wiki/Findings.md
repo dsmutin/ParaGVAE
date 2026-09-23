@@ -1,5 +1,7 @@
 # Findings
 
+The numbers below were scored before the contig-F1 matching fix and are not valid.
+
 The numeric comparison lives in the code repository at `docs/findings.md`, with charts under `benchmark/`.
 
 Short version, contig F1, two seeds, not AMBER:
