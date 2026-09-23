@@ -1,42 +1,46 @@
 # Hypothesis checks on CGT tensors
 
-The numbers below were scored before the contig-F1 matching fix and are not valid. They will be replaced by a rerun.
+Score: contig F1 and ARI after k-means, unless the clustering folder says otherwise. `k` is the number of ground-truth genomes. This is not AMBER `f1_score_seq`, and VAMB is not rerun. Means are over seeds 0 and 1. Contig F1 matches a genome to the cluster with the largest overlap, so the score does not depend on cluster ids.
 
-
-
-Score: contig F1 and ARI after k-means, unless the clustering folder says otherwise. `k` is the number of ground-truth genomes. This is not AMBER `f1_score_seq`, and VAMB is not rerun. Means are over seeds 0 and 1. Several Strong100 and Illumina fits hit the 60-epoch cap while validation loss was still falling, so those rows are a shared budget, not a fully stopped optimum.
+The GCN is trained on undirected edges. One fifth are held out and removed from the propagation operator. Learning rate 0.05, at most 60 epochs, patience 8. Illumina fits hit that cap, so those rows are a shared budget. Provenance for each folder is `benchmark/<hypothesis>/provenance.txt`.
 
 Charts: `benchmark/<hypothesis>/f1.html`.
 
 ## Feature source
 
-This arm compares a frozen VAE latent with raw k-mer and depth. It is not end-to-end VAE+GCN training. Only Strong100 has a 32-d latent distinct from k-mer+depth. There, training on the raw matrix scored higher contig F1 than the frozen latent (0.313 vs 0.253). On ONT 100M, ONT 1B, Illumina, and the MetaMetro bubble the two matrices are the same file contents, so the arms match exactly. The May 2026 AMBER test did not find a significant gain for joint fine-tuning; this protocol is a different score and only separates the arms on Strong100.
+Frozen VAE latent versus raw k-mer and depth. This is not end-to-end VAE+GCN training. Only Strong100 has two different matrices. There the contig F1 values are 0.312 (latent) and 0.314 (raw). The gap is smaller than the seed scatter. The latent arm has the higher ARI (0.293 vs 0.265) and stopped near epoch 41, while the raw arm hit the 60-epoch cap. On ONT 100M, ONT 1B, Illumina, and the bubble the two matrices are identical, so the arms match.
 
 ## Loss
 
-Marker pairs exist for the VAEGbin bundles and are absent on the bubble, so `standard`, `diff_c`, and `proxy` match there. On the real graphs no loss wins everywhere:
+`standard` is edge BCE. `diff_c` and `proxy` add the single-copy marker push with weights 1 and 2. `contrastive` is InfoNCE of each training edge against 8 random nodes. The bubble has no marker pairs, so the first three losses match (contig F1 0.750).
 
-| Dataset | Best arm | Contig F1 |
+No loss leads on every dataset:
+
+| Dataset | Highest contig F1 | Notes |
 |---|---|---|
-| Strong100 | proxy 0.256, standard 0.253 | essentially tied |
-| ONT 100M | proxy 0.302 | above standard 0.214 |
-| ONT 1B | diff_c 0.481 | above standard 0.448 |
-| Illumina | standard 0.174 | contrastive 0.141 is lower |
-
-`contrastive` is the weak arm on the larger graphs. The May result that standard DIFF-C won an AMBER bake-off is not repeated as a large gap under this contig F1.
+| Strong100 | diff_c 0.328 | standard 0.312, contrastive 0.302 |
+| ONT 100M | standard 0.320 | seed scatter ±0.077; proxy 0.202 is lower |
+| ONT 1B | diff_c 0.433 | standard 0.354, proxy 0.287 |
+| Illumina | contrastive 0.199 | all four arms are at or near the epoch cap; ARI stays near 0.06 |
 
 ## Colouring
 
-Discrete colours (CFA sample colours on the bubble; 8-way k-mer composition elsewhere, stored as `uint8` and concatenated only in the colour arm) do not raise contig F1. Strong100 0.217 vs 0.253 uncoloured. ONT 1B 0.211 vs 0.448. Illumina 0.148 vs 0.174.
+Discrete colours (CFA sample colours on the bubble; 8-way k-mer composition elsewhere) are concatenated only in the colour arm.
+
+The effect is not the same on every graph. Strong100 stays at 0.313 vs 0.312. ONT 100M falls from 0.320 to 0.202. ONT 1B rises from 0.354 to 0.421 and Illumina from 0.165 to 0.199, while ARI does not rise on either. The bubble is unchanged at 0.750.
 
 ## Graph type
 
-Assembly edges beat a 5-NN feature graph on ONT 1B (0.448 vs 0.201) and on Strong100 ARI (0.301 vs about 0.26). ONT 100M is the exception: kNN contig F1 is 0.266 vs assembly 0.214. Illumina assembly is only slightly higher (0.174 vs 0.163). Where `node_features.npy` equals the k-mer matrix, `knn_vae` and `knn_kmer` are the same graph.
+`knn_kmer` is skipped when it would copy `knn_vae`. That happens for the bubble, both ONT graphs, and Illumina (`benchmark/graph_type/skipped.csv`). Strong100 keeps both kNN arms; assembly contig F1 is 0.312, k-mer kNN 0.298, latent kNN 0.290.
+
+ONT 100M's assembly graph has 23 undirected edges besides self-loops, and 353 of 383 nodes are isolated. Its kNN contig F1 is 0.333 vs assembly 0.320. That is not a comparison against a connected assembly graph. ONT 1B kNN is 0.381 vs assembly 0.354. Illumina kNN is 0.228 vs assembly 0.165, with a lower ARI (0.037 vs 0.061).
 
 ## Multiscale
 
-Degree and local clustering coefficient help Illumina (0.217 vs 0.174) and ONT 1B slightly (0.469 vs 0.448). They lower Strong100 (0.213 vs 0.253). Extra structural channels are not a uniform upgrade.
+Degree and local clustering coefficient, with self-loops ignored. They lower Strong100 (0.281 vs 0.312) and ONT 100M (0.248 vs 0.320). They raise ONT 1B (0.469 vs 0.354). Illumina moves from 0.165 to 0.188 and stays at the epoch cap. The bubble colour of this arm is unstable across the two seeds (mean 0.750, standard deviation 0.250).
 
 ## Clustering
 
-Average-linkage agglomerative clustering does not replace k-means. ONT 1B k-means contig F1 is 0.448 vs 0.374, and ARI drops from 0.275 to 0.065. Illumina agglomerative F1 is higher (0.219 vs 0.174) while ARI falls (0.010 vs 0.081). The historical requirement for VAMB is not retested here.
+Average-linkage agglomerative clustering uses the same embedding and the same `k`. VAMB is not in this check.
+
+On Strong100, agglomerative contig F1 is 0.388 and ARI 0.365, against k-means 0.312 and 0.293. On ONT 100M, k-means is higher on both (0.320 / 0.139 vs 0.228 / 0.036). ONT 1B contig F1 is tied near 0.35, and k-means ARI is higher (0.130 vs 0.042). Illumina agglomerative F1 is 0.215 vs 0.165, with ARI 0.012 vs 0.061.

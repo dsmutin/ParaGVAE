@@ -1,0 +1,14 @@
+hypothesis: clustering
+command: python research/run_hypothesis.py clustering
+python: 3.12.14
+numpy: 2.5.3
+scikit-learn: 1.9.1
+compiler: x86_64-conda-linux-gnu-c++ (conda-forge gcc 16.2.0-5) 16.2.0
+seeds: [0, 1]
+max_epochs: 60
+patience: 8
+lr: 0.05
+metametro_src: /mnt/tank/scratch/dsmutin/tools/my/metametro/src
+metametro_commit: ac4109a9ce8d9eb7475a96fd676e2c666383c5d2
+paragvae_commit: 5a45e64fa89ce9dfdfd8c66bba48aa9be8040ec9
+vaegbin_data: /mnt/tank/scratch/dsmutin/partition-metagenomics/vaegbin/data

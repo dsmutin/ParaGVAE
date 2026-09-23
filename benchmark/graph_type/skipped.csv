@@ -1,0 +1,5 @@
+dataset,arm,reason
+metametro_bubble,knn_kmer,same features as knn_vae
+ont100m,knn_kmer,same features as knn_vae
+ont1b,knn_kmer,same features as knn_vae
+illumina,knn_kmer,same features as knn_vae
