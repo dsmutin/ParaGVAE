@@ -26,7 +26,10 @@ conda activate paragvae
 paragvae --version
 paragvae
 python examples/toy/run.py
+python research/run_hypothesis.py joint_training
 ```
+
+Hypothesis folders, external data paths, and the score definition are in [docs/reproduction.md](docs/reproduction.md). MetaMetro CFA colours and the CGT training tensor are in [docs/metametro.md](docs/metametro.md). The latest contig-F1 comparison is in [docs/findings.md](docs/findings.md). Charts are under `benchmark/`.
 
 ## Tests
 

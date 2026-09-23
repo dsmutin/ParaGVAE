@@ -1,22 +1,23 @@
 # paragvae wiki
 
-Graph VAE binning on MetaMetro coloured graph tensors
+Graph VAE binning on MetaMetro coloured graph tensors.
 
-**Status:** in development. Version: see repository file `VERSION` (starts at 0.0.1).
+Version is the `VERSION` file in the code repository.
 
-## Starting interconnections
+## Call path
 
 ```
-user → paragvae CLI → run_pipeline() → JSON {status, ok, input_path}
-                ↑
-         tests (mandatory / optional)
-                ↑
-         examples/toy/run.py
+VAEGbin bundle or MetaMetro fixture
+        → CGT (CSR tensor; colours in uint8 matrices)
+        → cpp/gcn_train (early-stopped 2-layer GCN)
+        → k-means or agglomerative bins
+        → benchmark/<hypothesis>/results.csv
 ```
 
-Until real logic exists, `run_pipeline` is a baseline stub.
+The CLI `paragvae` still returns the scaffold JSON (`status=baseline`). Hypothesis runs are `python research/run_hypothesis.py <name>`.
 
 ## Pages
 
 - [Contracts](Contracts)
 - [Testing](Testing)
+- [Findings](Findings)

@@ -1,19 +1,19 @@
 # Testing
 
-## Test data
+## Data
 
 | Path | Role |
 |------|------|
-| `examples/toy/data/` | toy outputs (created by `run.py`) |
-| `tests/` | contract tests (no large fixtures in the scaffold) |
+| `examples/toy/data/` | scaffold CLI output |
+| `intermediates/<dataset>/cgt/` | cached MetaMetro CGT |
+| `configs/datasets.yaml` | paths to MetaMetro and the VAEGbin bundles |
 
-Add real fixtures under `tests/data/` or `examples/toy/data/` and document them here. Do not invent datasets.
+External assemblies are not stored in git. The cache is what a later run reloads.
 
-## Integrative testing
+## Checks
 
-1. Mandatory unit/contract tests: `pytest -m mandatory`
-2. CLI write path: `tests/test_integration.py`
-3. Toy: `python examples/toy/run.py` (same baseline JSON contract)
-4. Full suite (optional + toy + any vignettes): GitHub Action `full-tests.yml` on **release** or **workflow_dispatch**
+1. `pytest -m mandatory` — version, CLI, hypothesis names, label-dict alignment
+2. `python examples/toy/run.py` — baseline JSON
+3. `python research/run_all.py` — six hypothesis benchmarks, two seeds, early stopping
 
-Required CI on every push/PR: `required-tests.yml` (mandatory only), conda from `environment.yml`.
+The binning score in the benchmarks is contig F1 plus ARI. It is not AMBER.

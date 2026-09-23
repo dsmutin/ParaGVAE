@@ -2,5 +2,5 @@
 
 Scaffold checklist. Check a box only after mandatory tests pass.
 
-- [ ] Baseline CLI and pipeline (`status=baseline`)
-- [ ] Replace baseline with the first real feature (bump **minor** in `VERSION`)
+- [x] Baseline CLI and pipeline (`status=baseline`)
+- [x] CGT trainer, hypothesis benchmarks, version 0.1.0 (baseline CLI kept)

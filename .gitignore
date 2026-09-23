@@ -30,6 +30,10 @@ conda-bld/
 .vscode/
 *.swp
 
+# compiled native trainer and per-seed job scratch
+cpp/gcn_train
+benchmark/**/jobs/
+
 # runtime
 .snakemake/
 .Rproj.user/

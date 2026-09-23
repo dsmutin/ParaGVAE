@@ -1,0 +1,11 @@
+# External data. The repository does not vendor assemblies.
+metametro_src: /mnt/tank/scratch/dsmutin/tools/my/metametro/src
+vaegbin_data: /mnt/tank/scratch/dsmutin/partition-metagenomics/vaegbin/data
+bundles:
+  strong100: strong100
+  ont100m: samovar10_ont100m_gfa
+  ont1b: samovar10_ont1b_gfa
+  illumina: samovar10_illumina_100m
+seeds: [0, 1]
+max_epochs: 60
+patience: 8

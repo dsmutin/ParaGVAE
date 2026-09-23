@@ -15,3 +15,7 @@ Scaffold contracts from `/start-dev`. Add tool-specific rows when the product sp
 | Toy example runs the tool | baseline (`examples/toy/run.py`) |
 | English docs on public APIs | baseline (module/function docstrings) |
 | No `git push` unless the human asks | baseline (rule `no-push`) |
+| Colouring lives in CFA colour tables and CGT `uint8` colour matrices | `docs/metametro.md` (brief name TCA = this step) |
+| GCN training reads the CGT tensor only | `paragvae.train.train_gcn` |
+| Hypothesis checks are one-factor and early-stopped | `research/<hypothesis>/` via `paragvae.suite` |
+| Binning score is contig F1 and ARI, not AMBER | `paragvae.score` |
