@@ -14,7 +14,7 @@ That F1 is **not** AMBER. VAMB is not re-run. Absolute numbers will not match `r
 | Folder | Question | Comparison |
 |---|---|---|
 | `research/joint_training` | Train on frozen VAE latents or on raw k-mer+depth | `frozen_vae` vs `joint_raw` |
-| `research/loss` | Unsupervised objective | `standard`, `diff_c`, `proxy`, `contrastive` |
+| `research/loss` | Unsupervised objective | `standard`, `diff_c`, `proxy`, `contrastive` (InfoNCE, 8 negatives) |
 | `research/coloring` | Add CGT colour channels | `uncoloured` vs `cgt_colors` |
 | `research/graph_type` | Assembly edges vs feature kNN | `assembly`, `knn_vae`, `knn_kmer` |
 | `research/multiscale` | Degree and local clustering, self-loops excluded | `latent_only` vs `degree_clustering` |

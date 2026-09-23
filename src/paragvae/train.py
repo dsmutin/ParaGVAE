@@ -178,6 +178,62 @@ class _Adam:
         value -= self.lr * mhat / (np.sqrt(vhat) + 1e-8)
 
 
+def draw_contrastive_negatives(
+    positive: np.ndarray,
+    n_nodes: int,
+    n_neg: int,
+    rng: np.random.Generator,
+) -> np.ndarray:
+    """``n_neg`` nodes per positive edge, none equal to either endpoint."""
+    if n_nodes < 3:
+        raise ValueError("contrastive loss needs at least 3 nodes")
+    chosen = np.empty((positive.shape[0], n_neg), dtype=np.int64)
+    for edge in range(positive.shape[0]):
+        banned = {int(positive[edge, 0]), int(positive[edge, 1])}
+        for slot in range(n_neg):
+            node = int(rng.integers(0, n_nodes))
+            while node in banned:
+                node = (node + 1) % n_nodes
+            chosen[edge, slot] = node
+    return chosen
+
+
+def infonce_loss(
+    latent: np.ndarray,
+    positive: np.ndarray,
+    negatives: np.ndarray,
+) -> tuple[float, np.ndarray]:
+    """Mean InfoNCE of positive dots against the supplied negatives.
+
+    ``negatives`` has shape ``(n_edges, n_neg)``. The score of edge ``(i, j)``
+    is the dot product of their rows.
+    """
+    grad = np.zeros_like(latent)
+    n_edges = int(positive.shape[0])
+    if n_edges == 0:
+        return 0.0, grad
+    left = latent[positive[:, 0]]
+    right = latent[positive[:, 1]]
+    pos = np.sum(left * right, axis=1)
+    neg_rows = latent[negatives]
+    neg = np.sum(left[:, None, :] * neg_rows, axis=2)
+    logits = np.concatenate([pos[:, None], neg], axis=1)
+    peak = np.max(logits, axis=1, keepdims=True)
+    shifted = np.exp(logits - peak)
+    normalizer = np.sum(shifted, axis=1)
+    loss = float(np.mean(peak.ravel() + np.log(normalizer) - pos))
+    prob = shifted / normalizer[:, None]
+    scale = 1.0 / n_edges
+    pos_coeff = (prob[:, 0] - 1.0) * scale
+    np.add.at(grad, positive[:, 0], pos_coeff[:, None] * right)
+    np.add.at(grad, positive[:, 1], pos_coeff[:, None] * left)
+    neg_coeff = prob[:, 1:] * scale
+    np.add.at(grad, positive[:, 0], np.sum(neg_coeff[:, :, None] * neg_rows, axis=1))
+    for slot in range(negatives.shape[1]):
+        np.add.at(grad, negatives[:, slot], neg_coeff[:, slot:slot + 1] * left)
+    return loss, grad
+
+
 def _init(rng: np.random.Generator, rows: int, cols: int) -> np.ndarray:
     scale = np.sqrt(2.0 / max(rows, 1))
     return rng.normal(0.0, scale, size=(rows, cols)).astype(np.float32)
@@ -202,7 +258,7 @@ def train_gcn(
 
     ``loss`` is ``standard`` (edge BCE), ``diff_c`` (BCE plus marker
     separation), ``proxy`` (stronger marker term), or ``contrastive``
-    (neighbor InfoNCE against random nodes).
+    (InfoNCE of each training edge against 8 random nodes).
     """
     if loss not in {"standard", "diff_c", "proxy", "contrastive"}:
         raise ValueError(f"unknown loss {loss}")
@@ -249,6 +305,9 @@ def train_gcn(
         return np.stack([left, right], axis=1)
 
     val_negative = negative_pairs(max(val_ends.shape[0] * 2, 1))
+    val_contrastive = (
+        draw_contrastive_negatives(val_ends, n, 8, rng) if loss == "contrastive" and val_ends.shape[0] else None
+    )
 
     def pair_loss(
         latent_state: np.ndarray,
@@ -271,8 +330,6 @@ def train_gcn(
             np.add.at(grad, pairs[:, 0], pair_grad[:, None] * latent_state[pairs[:, 1]])
             np.add.at(grad, pairs[:, 1], pair_grad[:, None] * latent_state[pairs[:, 0]])
         total = 0.5 * (pos_loss + neg_loss)
-        if loss == "contrastive":
-            return total, grad
         extra = 0.0
         if marker_weight and marker.shape[0]:
             delta = latent_state[marker[:, 0]] - latent_state[marker[:, 1]]
@@ -287,8 +344,11 @@ def train_gcn(
         opt.t = epoch + 1
         epochs = epoch + 1
         hidden_state, latent_state, pre_h = embed(w0, w1)
-        positive = train_ends
-        train_value, grad_z = pair_loss(latent_state, positive)
+        if loss == "contrastive":
+            train_neg = draw_contrastive_negatives(train_ends, n, 8, rng)
+            train_value, grad_z = infonce_loss(latent_state, train_ends, train_neg)
+        else:
+            train_value, grad_z = pair_loss(latent_state, train_ends)
         last_train = train_value
         # Z = A @ (H @ W1)
         grad_u = np.asarray(adjacency.T @ grad_z, dtype=np.float32)
@@ -300,7 +360,12 @@ def train_gcn(
         opt.step("w1", w1, grad_w1.astype(np.float32))
         opt.step("w0", w0, grad_w0.astype(np.float32))
         _, val_latent, _ = embed(w0, w1)
-        val_value, _ = pair_loss(val_latent, val_ends, val_negative)
+        if loss == "contrastive" and val_contrastive is not None:
+            val_value, _ = infonce_loss(val_latent, val_ends, val_contrastive)
+        elif loss == "contrastive":
+            val_value = 0.0
+        else:
+            val_value, _ = pair_loss(val_latent, val_ends, val_negative)
         if val_value + 1e-5 < best_val:
             best_val = val_value
             best_state = (w0.copy(), w1.copy())

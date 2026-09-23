@@ -169,6 +169,25 @@ int main(int argc, char** argv) {
     };
     std::vector<int> val_neg_i, val_neg_j;
     draw_neg(std::max(n_val * 2, 1), val_neg_i, val_neg_j);
+    const int n_contrastive = 8;
+    auto draw_contrastive = [&](const std::vector<int>& left, const std::vector<int>& right, std::vector<int>& dest) {
+      dest.assign(left.size() * static_cast<size_t>(n_contrastive), 0);
+      for (size_t edge = 0; edge < left.size(); ++edge) {
+        for (int slot = 0; slot < n_contrastive; ++slot) {
+          int node = node_draw(rng);
+          int guard = 0;
+          while ((node == left[edge] || node == right[edge]) && guard < meta.n) {
+            node = (node + 1) % meta.n;
+            ++guard;
+          }
+          dest[edge * n_contrastive + slot] = node;
+        }
+      }
+    };
+    std::vector<int> val_contrastive;
+    if (meta.loss == 3) {
+      draw_contrastive(val_i, val_j, val_contrastive);
+    }
 
     std::normal_distribution<float> normal(0.f, 1.f);
     auto init = [&](int rows, int cols) {
@@ -278,26 +297,51 @@ int main(int argc, char** argv) {
       return static_cast<float>(total);
     };
 
+    auto info_nce = [&](const std::vector<int>& left, const std::vector<int>& right, const std::vector<int>& negatives) {
+      std::fill(grad_z.begin(), grad_z.end(), 0.f);
+      const int n_edges = static_cast<int>(left.size());
+      if (n_edges == 0 || meta.n < 3) {
+        return 0.f;
+      }
+      double total = 0.0;
+      const float inv = 1.f / static_cast<float>(n_edges);
+      for (int edge = 0; edge < n_edges; ++edge) {
+        const int i = left[edge];
+        const int j = right[edge];
+        const float positive = dot_row(z, i, j, meta.latent);
+        float neg_logit[8];
+        float peak = positive;
+        for (int slot = 0; slot < n_contrastive; ++slot) {
+          neg_logit[slot] = dot_row(z, i, negatives[edge * n_contrastive + slot], meta.latent);
+          peak = std::max(peak, neg_logit[slot]);
+        }
+        float sum_exp = std::exp(positive - peak);
+        for (int slot = 0; slot < n_contrastive; ++slot) {
+          sum_exp += std::exp(neg_logit[slot] - peak);
+        }
+        total += (peak + std::log(sum_exp)) - positive;
+        add_bilinear(grad_z, z, i, j, (std::exp(positive - peak) / sum_exp - 1.f) * inv, meta.latent);
+        for (int slot = 0; slot < n_contrastive; ++slot) {
+          const float weight = std::exp(neg_logit[slot] - peak) / sum_exp * inv;
+          add_bilinear(grad_z, z, i, negatives[edge * n_contrastive + slot], weight, meta.latent);
+        }
+      }
+      return static_cast<float>(total / n_edges);
+    };
+
     for (int epoch = 0; epoch < meta.max_epochs; ++epoch) {
       opt.t = epoch + 1;
       epochs = epoch + 1;
       embed(w0, w1);
-      std::vector<int> use_i = train_i;
-      std::vector<int> use_j = train_j;
-      if (meta.loss == 3 && !train_i.empty()) {
-        use_i.clear();
-        use_j.clear();
-        std::uniform_int_distribution<int> pick(0, static_cast<int>(train_i.size()) - 1);
-        const int take = std::min(512, static_cast<int>(train_i.size()));
-        for (int t = 0; t < take; ++t) {
-          const int id = pick(rng);
-          use_i.push_back(train_i[id]);
-          use_j.push_back(train_j[id]);
-        }
+      if (meta.loss == 3) {
+        std::vector<int> train_contrastive;
+        draw_contrastive(train_i, train_j, train_contrastive);
+        last_train = info_nce(train_i, train_j, train_contrastive);
+      } else {
+        std::vector<int> neg_i, neg_j;
+        draw_neg(std::max(static_cast<int>(train_i.size()) * 2, 1), neg_i, neg_j);
+        last_train = pair_loss(train_i, train_j, neg_i, neg_j, true);
       }
-      std::vector<int> neg_i, neg_j;
-      draw_neg(std::max(static_cast<int>(use_i.size()) * 2, 1), neg_i, neg_j);
-      last_train = pair_loss(use_i, use_j, neg_i, neg_j, true);
 
       std::fill(grad_u.begin(), grad_u.end(), 0.f);
       for (int i = 0; i < meta.n; ++i) {
@@ -344,7 +388,8 @@ int main(int argc, char** argv) {
       opt.apply(w0, opt.m0, opt.v0, grad_w0);
 
       embed(w0, w1);
-      const float val = pair_loss(val_i, val_j, val_neg_i, val_neg_j, false);
+      const float val = meta.loss == 3 ? info_nce(val_i, val_j, val_contrastive)
+                                       : pair_loss(val_i, val_j, val_neg_i, val_neg_j, false);
       if (val + 1e-5f < best_val) {
         best_val = val;
         best0 = w0;
