@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from paragvae.cache import save_study  # noqa: E402
-from paragvae.plots import write_charts  # noqa: E402
+from paragvae.plots import save_charts  # noqa: E402
 from paragvae.study import arm_is_redundant, run_arm  # noqa: E402
 from paragvae.suite import arms_for, load_config, load_graphs  # noqa: E402
 
@@ -59,10 +59,7 @@ def main(hypothesis: str, graphs=None, config=None) -> Path:
             writer = csv.DictWriter(handle, fieldnames=fields)
             writer.writeheader()
             writer.writerows(rows)
-    try:
-        write_charts(rows, bench)
-    except Exception as error:  # noqa: BLE001 — keep the CSV if the chart spec fails
-        (bench / "chart_error.txt").write_text(f"{type(error).__name__}: {error}", encoding="utf-8")
+    save_charts(rows, bench)
     return dest
 
 

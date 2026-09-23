@@ -62,3 +62,13 @@ def write_charts(rows: list[dict], dest: Path) -> None:
         chart.save(str(dest / "f1.png"), scale_factor=2)
     except Exception as error:  # noqa: BLE001 — PNG is optional if the converter is absent
         (dest / "f1_png_error.txt").write_text(str(error), encoding="utf-8")
+
+
+def save_charts(rows: list[dict], dest: Path) -> None:
+    """Write charts. A failure is recorded and then raised so the run exits non-zero."""
+    try:
+        write_charts(rows, dest)
+    except Exception as error:
+        dest.mkdir(parents=True, exist_ok=True)
+        (dest / "chart_error.txt").write_text(f"{type(error).__name__}: {error}", encoding="utf-8")
+        raise
