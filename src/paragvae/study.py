@@ -65,6 +65,18 @@ def _degree_and_clustering(indptr: np.ndarray, indices: np.ndarray) -> np.ndarra
     return np.stack([degree, clustering], axis=1)
 
 
+def same_feature_matrices(graph: StudyGraph) -> bool:
+    """True when the VAE matrix and the raw matrix are the same array contents."""
+    vae = np.asarray(graph.vae_features)
+    raw = np.asarray(graph.raw_features)
+    return vae.shape == raw.shape and np.array_equal(vae, raw)
+
+
+def arm_is_redundant(graph: StudyGraph, arm: Arm) -> bool:
+    """Skip a second kNN arm when it would rebuild the same graph."""
+    return arm.graph == "knn_kmer" and same_feature_matrices(graph)
+
+
 def _topology(graph: StudyGraph, arm: Arm) -> tuple[np.ndarray, np.ndarray]:
     cache = getattr(graph, "topology_cache", None)
     if cache is None:

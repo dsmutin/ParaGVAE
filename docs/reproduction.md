@@ -16,7 +16,7 @@ That F1 is **not** AMBER. VAMB is not re-run. Absolute numbers will not match `r
 | `research/feature_source` | Frozen VAE latent versus raw k-mer+depth. Not end-to-end joint training | `vae_latent` vs `raw_features` |
 | `research/loss` | Unsupervised objective | `standard`, `diff_c`, `proxy`, `contrastive` (InfoNCE, 8 negatives) |
 | `research/coloring` | Add CGT colour channels | `uncoloured` vs `cgt_colors` |
-| `research/graph_type` | Assembly edges vs feature kNN | `assembly`, `knn_vae`, `knn_kmer` |
+| `research/graph_type` | Assembly edges vs feature kNN. `knn_kmer` is skipped when it duplicates `knn_vae` | `assembly`, `knn_vae`, `knn_kmer` |
 | `research/multiscale` | Degree and local clustering, self-loops excluded | `latent_only` vs `degree_clustering` |
 | `research/clustering` | Same embedding, two clusterers | `kmeans` vs `agglomerative` |
 

@@ -12,7 +12,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from paragvae.cache import save_study  # noqa: E402
 from paragvae.plots import write_charts  # noqa: E402
-from paragvae.study import run_arm  # noqa: E402
+from paragvae.study import arm_is_redundant, run_arm  # noqa: E402
 from paragvae.suite import arms_for, load_config, load_graphs  # noqa: E402
 
 
@@ -26,8 +26,13 @@ def main(hypothesis: str, graphs=None, config=None) -> Path:
     arms = arms_for(hypothesis, int(config["max_epochs"]), int(config["patience"]))
     rows = []
     bench = ROOT / "benchmark" / hypothesis
+    skipped = []
     for graph in graphs:
         for arm in arms:
+            if arm_is_redundant(graph, arm):
+                skipped.append({"dataset": graph.name, "arm": arm.arm, "reason": "same features as knn_vae"})
+                print(f"{graph.name} {arm.arm} skipped: same features as knn_vae", flush=True)
+                continue
             for seed in config["seeds"]:
                 job = bench / "jobs" / f"{graph.name}_{arm.arm}_{seed}"
                 row = run_arm(graph, arm, int(seed), work=job)
@@ -40,6 +45,13 @@ def main(hypothesis: str, graphs=None, config=None) -> Path:
     out = ROOT / "research" / hypothesis
     out.mkdir(parents=True, exist_ok=True)
     bench.mkdir(parents=True, exist_ok=True)
+    if skipped:
+        with (bench / "skipped.csv").open("w", encoding="utf-8", newline="") as handle:
+            writer = csv.DictWriter(handle, fieldnames=["dataset", "arm", "reason"])
+            writer.writeheader()
+            writer.writerows(skipped)
+    if not rows:
+        raise RuntimeError(f"no arms ran for {hypothesis}")
     dest = out / "results.csv"
     fields = list(rows[0])
     for path in (dest, bench / "results.csv"):
