@@ -102,6 +102,22 @@ def _topology(graph: StudyGraph, arm: Arm) -> tuple[np.ndarray, np.ndarray]:
     raise ValueError(arm.graph)
 
 
+def assembly_edge_weight(graph: StudyGraph, arm: Arm, indptr: np.ndarray) -> np.ndarray | None:
+    """Return assembly edge weights aligned with ``indptr``, or None for a kNN graph.
+
+    A kNN graph has no stored weights. A length mismatch on an assembly graph
+    is an error rather than a silent fallback to ones.
+    """
+    if arm.graph != "assembly":
+        return None
+    stored = np.asarray(graph.cgt.edge_features, dtype=np.float32)
+    column = stored.reshape(-1) if stored.ndim == 1 else np.asarray(stored[:, 0], dtype=np.float32)
+    expected = int(indptr[-1]) if len(indptr) else 0
+    if column.shape[0] != expected:
+        raise ValueError(f"{graph.name}: edge weight length {column.shape[0]} does not match {expected} CSR entries")
+    return column
+
+
 def _features(graph: StudyGraph, arm: Arm, indptr: np.ndarray, indices: np.ndarray) -> np.ndarray:
     base = graph.raw_features if arm.joint else graph.vae_features
     parts = [np.asarray(base, dtype=np.float32)]
@@ -126,6 +142,7 @@ def run_arm(graph: StudyGraph, arm: Arm, seed: int, work: Path | None = None) ->
         indptr=indptr,
         indices=indices,
         different_pairs=graph.different_pairs,
+        edge_weight=assembly_edge_weight(graph, arm, indptr),
         loss=arm.loss,
         max_epochs=arm.max_epochs,
         patience=arm.patience,

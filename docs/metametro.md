@@ -20,4 +20,4 @@ No MetaMetro source file was edited. A later schema can add an optional `float32
 
 ## Loader
 
-`paragvae.graphs.cgt_from_csr` builds a CGT from a VAEGbin CSR bundle and calls `validate_cgt`. Assembly topology stays sparse. The training code never allocates a dense `N×N` parameter matrix; the normalized operator is a SciPy CSR matrix.
+`paragvae.graphs.cgt_from_csr` builds a CGT from a VAEGbin CSR bundle and calls `validate_cgt`. Assembly topology stays sparse. The training code never allocates a dense `N×N` parameter matrix; the normalized operator is a SciPy CSR matrix. Assembly runs use `edge_features` as the edge weight. A weight vector whose length is not the CSR nnz is an error.
