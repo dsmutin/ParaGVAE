@@ -6,9 +6,13 @@ from pathlib import Path
 
 
 def _version() -> str:
-    """Return the package version from the repository VERSION file."""
-    path = Path(__file__).resolve().parents[2] / "VERSION"
-    return path.read_text(encoding="utf-8").strip()
+    """Return the version from a source checkout, or from package metadata once installed."""
+    checkout = Path(__file__).resolve().parents[2] / "VERSION"
+    if checkout.is_file() and (checkout.parent / "pyproject.toml").is_file():
+        return checkout.read_text(encoding="utf-8").strip()
+    from importlib.metadata import version
+
+    return version("paragvae")
 
 
 __version__ = _version()
