@@ -22,6 +22,12 @@ That F1 is **not** AMBER. VAMB is not re-run. Absolute numbers will not match `r
 
 `diff_c` / `proxy` use `all_different.npy` (single-copy marker pairs). They do not use genome ids. The bubble fixture has no marker pairs, so those two losses match `standard` there.
 
+## Label leakage (optional)
+
+`paragvae.leakage.leaked_label_features` is an optional semi-supervised channel. It writes a one-hot only on an observed-node mask and diffuses that mass along neighbouring nodes with a decay. Unobserved nodes start at zero. `concat_leakage` stacks those channels beside existing node features.
+
+Passing a mask that is True on the nodes you score is label leakage into the test set and is not a valid benchmark. The default benchmarks must not call this, and they do not. It is not one of the arms above.
+
 ## Data
 
 `configs/datasets.yaml` points at the MetaMetro checkout and the VAEGbin bundles `strong100`, `samovar10_ont100m_gfa`, `samovar10_ont1b_gfa`, and `samovar10_illumina_100m`.
