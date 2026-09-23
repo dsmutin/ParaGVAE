@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -20,7 +22,9 @@ def ensure_binary() -> Path:
     """Compile ``cpp/gcn_train.cpp`` when the binary is missing or older."""
     if BINARY.is_file() and BINARY.stat().st_mtime >= SOURCE.stat().st_mtime:
         return BINARY
-    compiler = "g++"
+    compiler = os.environ.get("CXX") or shutil.which("g++")
+    if not compiler:
+        raise FileNotFoundError("g++ was not found. Install gxx_linux-64 in the paragvae environment.")
     subprocess.run(
         [compiler, "-O3", "-std=c++17", "-o", str(BINARY), str(SOURCE)],
         check=True,
