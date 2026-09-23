@@ -65,6 +65,7 @@ def test_native_contrastive_fit(tmp_path: Path) -> None:
         latent=4,
         hidden=4,
         seed=1,
+        lr=0.05,
         work=tmp_path / "job",
     )
     assert fit.embedding.shape == (n, 4)

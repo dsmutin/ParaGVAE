@@ -13,6 +13,8 @@ from paragvae.native import train_gcn_native
 from paragvae.score import evaluate
 from paragvae.train import knn_adjacency
 
+ROOT = Path(__file__).resolve().parents[2]
+
 
 @dataclass
 class Arm:
@@ -28,6 +30,7 @@ class Arm:
     clustering: str = "kmeans"
     max_epochs: int = 25
     patience: int = 5
+    lr: float = 0.05
 
 
 def _degree_and_clustering(indptr: np.ndarray, indices: np.ndarray) -> np.ndarray:
@@ -136,7 +139,7 @@ def run_arm(graph: StudyGraph, arm: Arm, seed: int, work: Path | None = None) ->
     indptr, indices = _topology(graph, arm)
     features = _features(graph, arm, indptr, indices)
     started = time.perf_counter()
-    job = work or (Path("benchmark") / arm.hypothesis / "jobs" / f"{graph.name}_{arm.arm}_{seed}")
+    job = work or (ROOT / "benchmark" / arm.hypothesis / "jobs" / f"{graph.name}_{arm.arm}_{seed}")
     fit = train_gcn_native(
         features=features,
         indptr=indptr,
@@ -149,6 +152,7 @@ def run_arm(graph: StudyGraph, arm: Arm, seed: int, work: Path | None = None) ->
         latent=16,
         hidden=32,
         seed=seed,
+        lr=arm.lr,
         work=job,
     )
     scores = evaluate(fit.embedding, graph.labels, arm.clustering, seed)

@@ -24,6 +24,7 @@ def test_hypothesis_folders_are_stable() -> None:
     )
     losses = [arm.arm for arm in arms_for("loss", max_epochs=2, patience=1)]
     assert losses == ["standard", "diff_c", "proxy", "contrastive"]
+    assert all(arm.lr == 0.05 for arm in arms_for("loss", max_epochs=2, patience=1, lr=0.05))
     graphs = [arm.graph for arm in arms_for("graph_type", max_epochs=2, patience=1)]
     assert graphs == ["assembly", "knn_vae", "knn_kmer"]
 

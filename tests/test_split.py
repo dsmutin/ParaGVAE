@@ -68,6 +68,7 @@ def test_native_fit_on_a_ring(tmp_path: Path) -> None:
         latent=4,
         hidden=4,
         seed=0,
+        lr=0.05,
         work=tmp_path / "job",
     )
     assert fit.embedding.shape == (12, 4)

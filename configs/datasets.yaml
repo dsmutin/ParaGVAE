@@ -9,3 +9,4 @@ bundles:
 seeds: [0, 1]
 max_epochs: 60
 patience: 8
+lr: 0.05

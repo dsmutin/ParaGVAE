@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import csv
+import platform
+import subprocess
 import sys
 from pathlib import Path
 
@@ -16,6 +18,47 @@ from paragvae.study import arm_is_redundant, run_arm  # noqa: E402
 from paragvae.suite import arms_for, load_config, load_graphs  # noqa: E402
 
 
+def _git_head(folder: Path) -> str:
+    try:
+        done = subprocess.run(
+            ["git", "-C", str(folder), "rev-parse", "HEAD"],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except (OSError, subprocess.CalledProcessError):
+        return "not a git checkout"
+    return done.stdout.strip()
+
+
+def write_provenance(dest: Path, hypothesis: str, config: dict) -> None:
+    """Record the command, package versions, and checkouts next to a benchmark."""
+    import numpy
+    import sklearn
+
+    compiler = subprocess.run(["g++", "--version"], capture_output=True, text=True)
+    compiler_line = compiler.stdout.splitlines()[0] if compiler.returncode == 0 and compiler.stdout else "g++ not found"
+    metametro = Path(config["metametro_src"])
+    lines = [
+        f"hypothesis: {hypothesis}",
+        f"command: python research/run_hypothesis.py {hypothesis}",
+        f"python: {platform.python_version()}",
+        f"numpy: {numpy.__version__}",
+        f"scikit-learn: {sklearn.__version__}",
+        f"compiler: {compiler_line}",
+        f"seeds: {config['seeds']}",
+        f"max_epochs: {config['max_epochs']}",
+        f"patience: {config['patience']}",
+        f"lr: {config['lr']}",
+        f"metametro_src: {metametro}",
+        f"metametro_commit: {_git_head(metametro.parent)}",
+        f"paragvae_commit: {_git_head(ROOT)}",
+        f"vaegbin_data: {config['vaegbin_data']}",
+    ]
+    dest.mkdir(parents=True, exist_ok=True)
+    (dest / "provenance.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
 def main(hypothesis: str, graphs=None, config=None) -> Path:
     """Write ``research/<hypothesis>/results.csv`` and return that path."""
     config = config or load_config()
@@ -23,7 +66,7 @@ def main(hypothesis: str, graphs=None, config=None) -> Path:
         graphs = load_graphs(config)
         for graph in graphs:
             save_study(graph)
-    arms = arms_for(hypothesis, int(config["max_epochs"]), int(config["patience"]))
+    arms = arms_for(hypothesis, int(config["max_epochs"]), int(config["patience"]), float(config["lr"]))
     rows = []
     bench = ROOT / "benchmark" / hypothesis
     skipped = []
@@ -60,6 +103,7 @@ def main(hypothesis: str, graphs=None, config=None) -> Path:
             writer.writeheader()
             writer.writerows(rows)
     save_charts(rows, bench)
+    write_provenance(bench, hypothesis, config)
     return dest
 
 

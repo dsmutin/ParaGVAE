@@ -30,9 +30,9 @@ def load_graphs(config: dict | None = None) -> list[StudyGraph]:
     return graphs
 
 
-def arms_for(hypothesis: str, max_epochs: int, patience: int) -> list[Arm]:
+def arms_for(hypothesis: str, max_epochs: int, patience: int, lr: float = 0.05) -> list[Arm]:
     """Return the arms that isolate one historical question."""
-    common = {"max_epochs": max_epochs, "patience": patience}
+    common = {"max_epochs": max_epochs, "patience": patience, "lr": lr}
     if hypothesis == "feature_source":
         # Raw k-mer and depth versus the frozen VAE latent. This is not
         # end-to-end VAE+GCN training; only Strong100 has two different matrices.

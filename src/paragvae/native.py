@@ -41,6 +41,7 @@ def train_gcn_native(
     latent: int,
     hidden: int,
     seed: int,
+    lr: float,
     work: Path,
 ) -> TrainResult:
     """Run one early-stopped fit in the compiled trainer."""
@@ -75,7 +76,7 @@ def train_gcn_native(
     (work / "mark.i32").write_bytes(marker.reshape(-1).tobytes())
     (work / "meta.txt").write_text(
         f"{scaled.shape[0]} {scaled.shape[1]} {operator.nnz} {positives.shape[0]} {validation.shape[0]} "
-        f"{marker.shape[0]} {max_epochs} {patience} {seed} {hidden} {latent} {_LOSS[loss]} 0.05\n",
+        f"{marker.shape[0]} {max_epochs} {patience} {seed} {hidden} {latent} {_LOSS[loss]} {lr}\n",
         encoding="utf-8",
     )
     subprocess.run([str(binary), str(work)], check=True)
