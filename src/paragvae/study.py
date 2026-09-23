@@ -31,20 +31,34 @@ class Arm:
 
 
 def _degree_and_clustering(indptr: np.ndarray, indices: np.ndarray) -> np.ndarray:
+    """Degree and local clustering coefficient, ignoring self-loops.
+
+    Several VAEGbin graphs store a self-loop on every node. Counting that
+    loop as a neighbour makes a path look like a triangle.
+    """
     n = len(indptr) - 1
-    degree = np.diff(indptr).astype(np.float32)
-    edge_set = {(int(row), int(col)) for row, col in zip(np.repeat(np.arange(n), degree.astype(int)), indices)}
-    clustering = np.zeros(n, dtype=np.float32)
+    neighbors: list[list[int]] = []
+    edge_set: set[tuple[int, int]] = set()
     for node in range(n):
         start, stop = int(indptr[node]), int(indptr[node + 1])
-        neigh = indices[start:stop]
-        deg = int(neigh.shape[0])
+        neigh: list[int] = []
+        for col in np.asarray(indices[start:stop]).tolist():
+            other = int(col)
+            if other == node:
+                continue
+            neigh.append(other)
+            edge_set.add((node, other))
+        neighbors.append(neigh)
+    degree = np.asarray([len(neigh) for neigh in neighbors], dtype=np.float32)
+    clustering = np.zeros(n, dtype=np.float32)
+    for node, neigh in enumerate(neighbors):
+        deg = len(neigh)
         if deg < 2 or deg > 64:
             continue
         links = 0
         for i in range(deg):
             for j in range(i + 1, deg):
-                a, b = int(neigh[i]), int(neigh[j])
+                a, b = neigh[i], neigh[j]
                 if (a, b) in edge_set or (b, a) in edge_set:
                     links += 1
         clustering[node] = 2.0 * links / (deg * (deg - 1))

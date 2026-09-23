@@ -17,7 +17,7 @@ That F1 is **not** AMBER. VAMB is not re-run. Absolute numbers will not match `r
 | `research/loss` | Unsupervised objective | `standard`, `diff_c`, `proxy`, `contrastive` |
 | `research/coloring` | Add CGT colour channels | `uncoloured` vs `cgt_colors` |
 | `research/graph_type` | Assembly edges vs feature kNN | `assembly`, `knn_vae`, `knn_kmer` |
-| `research/multiscale` | Degree and local clustering | `latent_only` vs `degree_clustering` |
+| `research/multiscale` | Degree and local clustering, self-loops excluded | `latent_only` vs `degree_clustering` |
 | `research/clustering` | Same embedding, two clusterers | `kmeans` vs `agglomerative` |
 
 `diff_c` / `proxy` use `all_different.npy` (single-copy marker pairs). They do not use genome ids. The bubble fixture has no marker pairs, so those two losses match `standard` there.
