@@ -16,16 +16,21 @@ def _summary(rows: list[dict]) -> list[dict]:
         epochs = [float(item["epochs_ran"]) for item in group]
         mean = sum(f1) / len(f1)
         var = sum((value - mean) ** 2 for value in f1) / len(f1)
-        summary.append(
-            {
-                "dataset": dataset,
-                "arm": arm,
-                "f1": mean,
-                "f1_std": var**0.5,
-                "ari": sum(ari) / len(ari),
-                "epochs": sum(epochs) / len(epochs),
-            }
-        )
+        row = {
+            "dataset": dataset,
+            "arm": arm,
+            "f1": mean,
+            "f1_std": var**0.5,
+            "ari": sum(ari) / len(ari),
+            "epochs": sum(epochs) / len(epochs),
+        }
+        if "amber_f1" in group[0]:
+            amber = [float(item["amber_f1"]) for item in group]
+            amber_mean = sum(amber) / len(amber)
+            amber_var = sum((value - amber_mean) ** 2 for value in amber) / len(amber)
+            row["amber_f1"] = amber_mean
+            row["amber_f1_std"] = amber_var**0.5
+        summary.append(row)
     return summary
 
 
@@ -62,6 +67,27 @@ def write_charts(rows: list[dict], dest: Path) -> None:
         chart.save(str(dest / "f1.png"), scale_factor=2)
     except Exception as error:  # noqa: BLE001 — PNG is optional if the converter is absent
         (dest / "f1_png_error.txt").write_text(str(error), encoding="utf-8")
+    if "amber_f1" in summary_rows[0]:
+        amber_bars = base.mark_bar().encode(
+            x=alt.X("arm:N", title=None, sort=None),
+            y=alt.Y("amber_f1:Q", title="AMBER F1 (seq)"),
+            color=alt.Color("dataset:N", title="Dataset"),
+        )
+        amber_errors = base.mark_errorbar().encode(
+            x=alt.X("arm:N", sort=None),
+            y=alt.Y("amber_f1:Q", title="AMBER F1 (seq)"),
+            yError=alt.YError("amber_f1_std:Q"),
+        )
+        amber_chart = (
+            (amber_bars + amber_errors)
+            .facet(column=alt.Column("dataset:N", title=None))
+            .resolve_scale(y="shared")
+        )
+        amber_chart.save(str(dest / "amber_f1.html"))
+        try:
+            amber_chart.save(str(dest / "amber_f1.png"), scale_factor=2)
+        except Exception as error:  # noqa: BLE001
+            (dest / "amber_png_error.txt").write_text(str(error), encoding="utf-8")
 
 
 def save_charts(rows: list[dict], dest: Path) -> None:

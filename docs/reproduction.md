@@ -6,8 +6,9 @@ Historical May 2026 runs lived in `AIRI_may` and mixed three scores (internal co
 - bins from k-means unless the clustering hypothesis says otherwise
 - `k` = number of ground-truth genomes (same `k` for every arm)
 - contig F1 = majority-genome overlap; ARI from scikit-learn
+- AMBER `f1_score_seq` is a later stage on the same bins (`amber_f1`, `amber_ap`, `amber_ar`). It does not replace contig F1
 
-That F1 is **not** AMBER. VAMB is not re-run. Absolute numbers will not match `results_final_summary.md`.
+VAMB is not re-run. Contig F1 will not match `results_final_summary.md`. AMBER is the sequence-level score from `amber.py`.
 
 ## Arms
 

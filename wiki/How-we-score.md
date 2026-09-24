@@ -1,6 +1,6 @@
 # How we score
 
-Two numbers, both from `paragvae.score`. Neither is AMBER `f1_score_seq`. VAMB is not in this repository.
+Contig F1 and ARI come from `paragvae.score`. AMBER `f1_score_seq` is a separate stage, `paragvae.amber`, on the same bins. VAMB is not in this repository.
 
 | Score | What it measures |
 |-------|------------------|
@@ -10,6 +10,18 @@ Two numbers, both from `paragvae.score`. Neither is AMBER `f1_score_seq`. VAMB i
 `k` is the number of ground-truth genomes with a non-negative label, and it is at least 2. Every arm of a hypothesis uses that same `k`.
 
 Contig F1 does not depend on cluster ids. A high contig F1 with a low ARI means the overlap can look acceptable while the partition still disagrees with the genomes.
+
+## AMBER
+
+After clustering, the stage writes a CAMI binning file and runs `amber.py` (package `cami-amber`). Columns on each results row:
+
+| Column | AMBER field |
+|--------|-------------|
+| `amber_ap` | `precision_avg_seq` |
+| `amber_ar` | `recall_avg_seq` |
+| `amber_f1` | `f1_score_seq` |
+
+Gold sequences and lengths come from `configs/datasets.yaml`. A missing sequence or a non-positive length stops the run. The bubble fixture uses unitig sequence lengths from MetaMetro. The chart is `benchmark/<hypothesis>/amber_f1.html`.
 
 ## What is not claimed
 

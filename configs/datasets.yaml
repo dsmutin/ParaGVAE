@@ -6,6 +6,12 @@ bundles:
   ont100m: samovar10_ont100m_gfa
   ont1b: samovar10_ont1b_gfa
   illumina: samovar10_illumina_100m
+# CAMI gold, or a CSV with contig_id, genome_id, and length. Lengths are not invented.
+gold:
+  strong100: /mnt/tank/scratch/dsmutin/partition-metagenomics/vaegbin/data/strong100/gold_standard_genome.tsv
+  ont100m: /mnt/tank/scratch/dsmutin/archive/bioinformatics/2026/AIRI_may/clean/data/regenerated_data/ont_100m/assembly/ground_truth.csv
+  ont1b: /mnt/tank/scratch/dsmutin/archive/bioinformatics/2026/AIRI_may/clean/data/regenerated_data/ont_1b/assembly/ground_truth.csv
+  illumina: /mnt/tank/scratch/dsmutin/archive/bioinformatics/2026/AIRI_may/clean/data/regenerated_data/illumina_100m/assembly/ground_truth.csv
 seeds: [0, 1]
 max_epochs: 60
 patience: 8

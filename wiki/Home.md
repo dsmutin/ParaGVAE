@@ -38,7 +38,7 @@ Source tree: [github.com/dsmutin/ParaGVAE](https://github.com/dsmutin/ParaGVAE).
 
 | Page | What is there |
 |------|----------------|
-| [How we score](How-we-score) | Contig F1 and ARI. Not AMBER, and VAMB is not rerun. |
+| [How we score](How-we-score) | Contig F1, ARI, and a separate AMBER `f1_score_seq` stage. VAMB is not rerun. |
 | [Hypotheses](Hypotheses) | The six one-factor questions and their arms. |
 | [Findings](Findings) | Means over seeds 0 and 1 after the scoring and split fixes. |
 

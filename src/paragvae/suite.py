@@ -6,6 +6,7 @@ from pathlib import Path
 
 import yaml
 
+from paragvae.amber import load_gold
 from paragvae.graphs import StudyGraph, load_metametro_bubble, load_vaegbin_bundle
 from paragvae.metametro_path import ensure_metametro
 from paragvae.study import Arm
@@ -25,8 +26,19 @@ def load_graphs(config: dict | None = None) -> list[StudyGraph]:
     ensure_metametro(config["metametro_src"])
     graphs = [load_metametro_bubble()]
     root = Path(config["vaegbin_data"])
+    gold_paths = config.get("gold") or {}
     for name, folder in config["bundles"].items():
-        graphs.append(load_vaegbin_bundle(root / folder, name=name))
+        graph = load_vaegbin_bundle(root / folder, name=name)
+        if name not in gold_paths:
+            raise ValueError(f"configs/datasets.yaml has no gold path for {name}")
+        gold_path = Path(gold_paths[name])
+        if not gold_path.is_file():
+            raise ValueError(f"{name} gold standard is missing: {gold_path}")
+        graph.gold = load_gold(gold_path)
+        missing = [sequence_id for sequence_id in graph.sequence_ids if sequence_id not in graph.gold]
+        if missing:
+            raise ValueError(f"{name}: {len(missing)} nodes are absent from {gold_path}")
+        graphs.append(graph)
     return graphs
 
 

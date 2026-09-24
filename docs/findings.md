@@ -1,6 +1,6 @@
 # Hypothesis checks on CGT tensors
 
-Score: contig F1 and ARI after k-means, unless the clustering folder says otherwise. `k` is the number of ground-truth genomes. This is not AMBER `f1_score_seq`, and VAMB is not rerun. Means are over seeds 0 and 1. Contig F1 matches a genome to the cluster with the largest overlap, so the score does not depend on cluster ids.
+Score in the tables below: contig F1 and ARI after k-means, unless the clustering folder says otherwise. `k` is the number of ground-truth genomes. VAMB is not rerun. A later run also writes AMBER `f1_score_seq` as `amber_f1`. Those AMBER numbers are not in this file yet. Means are over seeds 0 and 1. Contig F1 matches a genome to the cluster with the largest overlap, so the score does not depend on cluster ids.
 
 The GCN is trained on undirected edges. One fifth are held out and removed from the propagation operator. Learning rate 0.05, at most 60 epochs, patience 8. Illumina fits hit that cap, so those rows are a shared budget. Provenance for each folder is `benchmark/<hypothesis>/provenance.txt`.
 

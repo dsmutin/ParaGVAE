@@ -7,10 +7,12 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
+from sklearn.metrics import adjusted_rand_score
 
+from paragvae.amber import score_bins
 from paragvae.graphs import StudyGraph, composition_colors
 from paragvae.native import train_gcn_native
-from paragvae.score import evaluate
+from paragvae.score import cluster_embedding, contig_f1
 from paragvae.train import knn_adjacency
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -155,7 +157,16 @@ def run_arm(graph: StudyGraph, arm: Arm, seed: int, work: Path | None = None) ->
         lr=arm.lr,
         work=job,
     )
-    scores = evaluate(fit.embedding, graph.labels, arm.clustering, seed)
+    if graph.gold is None:
+        raise ValueError(f"{graph.name} has no AMBER gold standard")
+    predicted = cluster_embedding(fit.embedding, graph.labels, arm.clustering, seed)
+    labels = np.asarray(graph.labels)
+    usable = labels >= 0
+    if int(usable.sum()) < 2:
+        ari = 0.0
+    else:
+        ari = float(adjusted_rand_score(labels[usable], predicted[usable]))
+    amber = score_bins(graph.sequence_ids, predicted, graph.gold, job / "amber_stage")
     return {
         "dataset": graph.name,
         "hypothesis": arm.hypothesis,
@@ -165,8 +176,11 @@ def run_arm(graph: StudyGraph, arm: Arm, seed: int, work: Path | None = None) ->
         "stopped_early": fit.stopped_early,
         "best_val_loss": round(fit.best_val_loss, 6),
         "train_loss": round(fit.train_loss, 6),
-        "ari": round(scores["ari"], 6),
-        "f1": round(scores["f1"], 6),
+        "ari": round(ari, 6),
+        "f1": round(contig_f1(labels, predicted), 6),
+        "amber_f1": round(amber["amber_f1"], 6),
+        "amber_ap": round(amber["amber_ap"], 6),
+        "amber_ar": round(amber["amber_ar"], 6),
         "n_nodes": int(graph.cgt.num_nodes),
         "n_edges": int(indices.shape[0]),
         "seconds": round(time.perf_counter() - started, 3),

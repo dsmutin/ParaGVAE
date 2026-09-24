@@ -18,6 +18,7 @@ Change a row only together with the test that locks it.
 | Colouring lives in CFA tables and CGT `uint8` matrices | `paragvae.graphs`; brief name TCA is this step. See [Data](Data) |
 | GCN training reads the CGT tensor | `cpp/gcn_train` via `paragvae.native`. No dense `N×N` adjacency |
 | Hypothesis checks are one-factor and early-stopped | `research/<hypothesis>/` via `paragvae.suite` |
-| Binning score is contig F1 and ARI, not AMBER | `paragvae.score` |
+| Binning score is contig F1 and ARI | `paragvae.score` |
+| AMBER `f1_score_seq` is a separate output stage | `paragvae.amber.score_bins` |
 
 Genome labels are used for the score and for choosing `k`. They are not features and they do not enter the loss.

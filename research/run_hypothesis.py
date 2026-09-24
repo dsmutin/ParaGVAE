@@ -84,7 +84,7 @@ def main(hypothesis: str, graphs=None, config=None) -> Path:
                 rows.append(row)
                 print(
                     f"{row['dataset']} {row['arm']} seed={row['seed']} "
-                    f"epochs={row['epochs_ran']} f1={row['f1']} ari={row['ari']}",
+                    f"epochs={row['epochs_ran']} f1={row['f1']} ari={row['ari']} amber_f1={row['amber_f1']}",
                     flush=True,
                 )
     out = ROOT / "research" / hypothesis

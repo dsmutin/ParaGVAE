@@ -28,6 +28,8 @@ class StudyGraph:
     vae_features: np.ndarray
     raw_features: np.ndarray
     labels: np.ndarray
+    sequence_ids: list[str]
+    gold: dict[str, tuple[str, int]] | None = None
 
 
 def _cgt_class():
@@ -201,17 +203,27 @@ def load_vaegbin_bundle(root: str | Path, name: str | None = None) -> StudyGraph
         vae_features=vae,
         raw_features=raw,
         labels=labels,
+        sequence_ids=node_ids,
     )
 
 
 def load_metametro_bubble() -> StudyGraph:
     """Coloured bubble fixture from MetaMetro (CFA colours already on the CGT)."""
     ensure_metametro()
-    from metametro.fixtures import mock_cgt
+    from metametro.converters.cfa_to_cdbg import cfa_to_cdbg
+    from metametro.fixtures import mock_cfa, mock_cgt
 
     graph = mock_cgt()
+    unitigs = sorted(cfa_to_cdbg(mock_cfa()).unitigs, key=lambda unitig: unitig.unitig_id)
+    sequence_ids = [unitig.unitig_id for unitig in unitigs]
+    if [row["source_id"] for row in graph.mapping] != sequence_ids:
+        raise ValueError("bubble unitig order does not match the CGT mapping")
     labels = np.asarray(graph.node_labels, dtype=np.int64)
     features = np.asarray(graph.node_features, dtype=np.float32)
+    gold = {
+        unitig.unitig_id: (str(int(label)), len(unitig.sequence))
+        for unitig, label in zip(unitigs, labels)
+    }
     return StudyGraph(
         name="metametro_bubble",
         cgt=graph,
@@ -219,6 +231,8 @@ def load_metametro_bubble() -> StudyGraph:
         vae_features=features,
         raw_features=features.copy(),
         labels=labels,
+        sequence_ids=sequence_ids,
+        gold=gold,
     )
 
 
