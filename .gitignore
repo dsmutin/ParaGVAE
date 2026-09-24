@@ -33,6 +33,7 @@ conda-bld/
 # compiled native trainer and per-seed job scratch
 cpp/gcn_train
 benchmark/**/jobs/
+examples/DS/**/jobs/
 
 # runtime
 .snakemake/
