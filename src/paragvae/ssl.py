@@ -277,15 +277,65 @@ def _kraken_assignments(path: Path) -> dict[str, int | None]:
     return assigned
 
 
+def _contig_ids(path: Path) -> list[str]:
+    """Return FASTA header tokens in file order. The first token is the Kraken id."""
+    if not path.is_file() or path.stat().st_size == 0:
+        raise FileNotFoundError(f"contigs FASTA not found or empty: {path}")
+    headers: list[str] = []
+    for line_number, raw in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+        if not raw.startswith(">"):
+            continue
+        token = raw[1:].split()[0] if raw[1:].split() else ""
+        if token == "":
+            raise ValueError(f"{path} line {line_number} has an empty FASTA header")
+        headers.append(token)
+    if not headers:
+        raise ValueError(f"contigs FASTA has no records: {path}")
+    return headers
+
+
+def _assignments_for_nodes(
+    node_ids: list[str],
+    assignments: dict[str, int | None],
+    contig_ids: list[str] | None,
+) -> dict[str, int | None]:
+    """Join Kraken sequence ids onto CFA node ids.
+
+    Direct ids are used when every Kraken id is already a CFA node id.
+    Otherwise the i-th contig header maps to ``n{i:06d}``, the id
+    ``contig2fastg`` stores in ``ID_i`` and ``fastg_to_cfa`` reads back.
+    """
+    known = set(node_ids)
+    if set(assignments) == known:
+        return assignments
+    if contig_ids is None:
+        unknown = sorted(seq_id for seq_id in assignments if seq_id not in known)
+        raise ValueError("kraken sequence id is not a CFA node: " + ", ".join(unknown))
+    if len(contig_ids) != len(node_ids):
+        raise ValueError(
+            f"contig count {len(contig_ids)} does not match CFA node count {len(node_ids)}"
+        )
+    joined: dict[str, int | None] = {}
+    for index, header in enumerate(contig_ids, start=1):
+        node_id = f"n{index:06d}"
+        if node_id not in known:
+            raise ValueError(f"contig {index} expected CFA node {node_id}, which is absent")
+        if header not in assignments:
+            raise ValueError(f"contig header {header} is missing from kraken output")
+        joined[node_id] = assignments[header]
+    extra = sorted(set(assignments) - set(contig_ids))
+    if extra:
+        raise ValueError("kraken sequence id is not a contig header: " + ", ".join(extra))
+    return joined
+
+
 def _node_colours(
     node_ids: list[str],
     assignments: dict[str, int | None],
+    contig_ids: list[str] | None = None,
 ) -> tuple[dict[str, list[int]], list[dict[str, str]]]:
     """Map sorted taxids to colour ids 0..C-1 and a CFA colours table."""
-    known = set(node_ids)
-    unknown = sorted(seq_id for seq_id in assignments if seq_id not in known)
-    if unknown:
-        raise ValueError("kraken sequence id is not a CFA node: " + ", ".join(unknown))
+    assignments = _assignments_for_nodes(node_ids, assignments, contig_ids)
     missing = sorted(node_id for node_id in node_ids if node_id not in assignments)
     if missing:
         raise ValueError("CFA node missing from kraken output: " + ", ".join(missing))
@@ -318,7 +368,13 @@ def _cgt_after_kraken(plan: dict) -> object:
         raise FileNotFoundError(f"FASTG not found: {fastg}")
     graph = fastg_to_cfa(fastg, k=int(plan["k"]), graph_id="ssl")
     assignments = _kraken_assignments(Path(plan["kraken_out"]))
-    node_colors, table = _node_colours([row["node_id"] for row in graph.nodes], assignments)
+    contigs = plan.get("contigs")
+    contig_ids = _contig_ids(Path(contigs)) if contigs else None
+    node_colors, table = _node_colours(
+        [row["node_id"] for row in graph.nodes],
+        assignments,
+        contig_ids,
+    )
     coloured = colour_cfa(
         graph,
         node_colors,

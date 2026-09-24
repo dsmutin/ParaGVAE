@@ -134,6 +134,45 @@ def test_kraken_taxids_colour_one_cgt_node(tmp_path: Path) -> None:
         _cgt_after_kraken({"fastg": str(fastg), "k": 21, "kraken_out": str(bad)})
 
 
+def test_kraken_contig_headers_join_by_order(tmp_path: Path) -> None:
+    """MEGAHIT contig headers map to CFA nodes in file order."""
+    from paragvae.metametro_path import ensure_metametro
+
+    try:
+        ensure_metametro()
+    except FileNotFoundError:
+        pytest.skip("MetaMetro checkout is not on this machine")
+    fastg = tmp_path / "k21.fastg"
+    fastg.write_text(
+        ">NODE_1_length_32_cov_1.0_ID_1;\n" + ("A" * 32) + "\n"
+        ">NODE_2_length_32_cov_1.0_ID_2;\n" + ("C" * 32) + "\n",
+        encoding="utf-8",
+    )
+    contigs = tmp_path / "k21.contigs.fa"
+    contigs.write_text(">k21_1 flag=1 multi=1.0000 len=32\n" + ("A" * 32) + "\n>k21_2 flag=1 multi=1.0000 len=32\n" + ("C" * 32) + "\n", encoding="utf-8")
+    kraken = tmp_path / "kraken.out"
+    kraken.write_text(
+        "C\tk21_1\tEscherichia coli (taxid 562)\t32\t562:8\n"
+        "U\tk21_2\tunclassified\t32\t0:32\n",
+        encoding="utf-8",
+    )
+    cgt = _cgt_after_kraken(
+        {
+            "fastg": str(fastg),
+            "k": 21,
+            "kraken_out": str(kraken),
+            "contigs": str(contigs),
+        }
+    )
+    dense = {
+        node_id: int(row["dense_id"])
+        for row in cgt.mapping
+        for node_id in row["cfa_node_ids"]
+    }
+    assert int(cgt.node_colors[dense["n000001"], 0]) == 1
+    assert int(cgt.node_colors[dense["n000002"], 0]) == 0
+
+
 def test_supervised_gcn_beats_chance_on_the_train_mask() -> None:
     """The head beats chance on the six observed nodes. Eval nodes are not scored."""
     features, indptr, indices, labels, mask = _labeled_ring()

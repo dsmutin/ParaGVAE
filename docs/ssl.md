@@ -18,7 +18,7 @@ The path is:
 
 ## Kraken colours
 
-`fastg_to_cfa` loads the assembly. Each Kraken2 `--output` sequence id must be a CFA `node_id`. A `C` line whose taxonomy field is `Species name (taxid 12345)` contributes that taxid. A `U` line, or a line with no taxid, leaves the node uncoloured. Unique taxids are sorted and mapped to colour ids `0..C-1`. `colour_cfa` writes that map onto nodes only. `cfa_to_cdbg` and `cdbg_to_cgt` copy the ids into the CGT colour matrices.
+`fastg_to_cfa` loads the assembly. A Kraken2 `--output` sequence id may already be a CFA `node_id`. When it is a MEGAHIT contig header instead, the i-th header in `k<k>.contigs.fa` maps to node `n{i:06d}` (`ID_i` from `contig2fastg`). A `C` line whose taxonomy field is `Species name (taxid 12345)` contributes that taxid. A `U` line, or a line with no taxid, leaves the node uncoloured. Unique taxids are sorted and mapped to colour ids `0..C-1`. `colour_cfa` writes that map onto nodes only. `cfa_to_cdbg` and `cdbg_to_cgt` copy the ids into the CGT colour matrices.
 
 ## Supervised head
 
