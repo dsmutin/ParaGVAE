@@ -23,6 +23,12 @@ VAMB is not re-run. Contig F1 will not match `results_final_summary.md`. AMBER i
 
 `diff_c` / `proxy` use `all_different.npy` (single-copy marker pairs). They do not use genome ids. The bubble fixture has no marker pairs, so those two losses match `standard` there.
 
+## Edge line-graph flip
+
+`paragvae.flip` is an optional variant. It is not a default benchmark arm, and `research/run_hypothesis.py` does not call it.
+
+`edge_line_graph` drops self-loops and treats a stored reverse pair as one undirected edge. Each undirected edge becomes a node of the line graph, and two of those nodes are adjacent when the original edges share a vertex. New-node features are the mean of the endpoint features, the edge features (or a column of ones), and any node or edge colour blocks that have nonzero width. `train_edge_graph` fits the same early-stopped GCN used elsewhere (`standard` loss, latent size 16, hidden size 32) on that line graph. `infer_nodes_from_edges` maps the edge embedding back to the original nodes by averaging incident edge rows. An original node with no incident edge is a zero row.
+
 ## Data
 
 `configs/datasets.yaml` points at the MetaMetro checkout and the VAEGbin bundles `strong100`, `samovar10_ont100m_gfa`, `samovar10_ont1b_gfa`, and `samovar10_illumina_100m`.
