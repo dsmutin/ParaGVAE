@@ -7,3 +7,4 @@ Scaffold checklist. Check a box only after mandatory tests pass.
 - [x] AMBER ``f1_score_seq`` stage on binning output (version 0.2.0)
 - [x] Edge line-graph flip (train and infer)
 - [x] Decaying label leakage from an observed-node mask
+- [x] SSL plan plus supervised class-weighted GCN
