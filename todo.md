@@ -8,3 +8,4 @@ Scaffold checklist. Check a box only after mandatory tests pass.
 - [x] Edge line-graph flip (train and infer)
 - [x] Decaying label leakage from an observed-node mask
 - [x] SSL plan plus supervised class-weighted GCN
+- [x] Coloured-graph node and multi-label edge heads
