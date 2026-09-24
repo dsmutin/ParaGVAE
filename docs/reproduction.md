@@ -29,6 +29,12 @@ VAMB is not re-run. Contig F1 will not match `results_final_summary.md`. AMBER i
 
 `edge_line_graph` drops self-loops and treats a stored reverse pair as one undirected edge. Each undirected edge becomes a node of the line graph, and two of those nodes are adjacent when the original edges share a vertex. New-node features are the mean of the endpoint features, the edge features (or a column of ones), and any node or edge colour blocks that have nonzero width. `train_edge_graph` fits the same early-stopped GCN used elsewhere (`standard` loss, latent size 16, hidden size 32) on that line graph. `infer_nodes_from_edges` maps the edge embedding back to the original nodes by averaging incident edge rows. An original node with no incident edge is a zero row.
 
+## Label leakage (optional)
+
+`paragvae.leakage.leaked_label_features` is an optional semi-supervised channel. It writes a one-hot only on an observed-node mask and diffuses that mass along neighbouring nodes with a decay. Unobserved nodes start at zero. `concat_leakage` stacks those channels beside existing node features.
+
+Passing a mask that is True on the nodes you score is label leakage into the test set and is not a valid benchmark. The default benchmarks must not call this, and they do not. It is not one of the arms above.
+
 ## Data
 
 `configs/datasets.yaml` points at the MetaMetro checkout and the VAEGbin bundles `strong100`, `samovar10_ont100m_gfa`, `samovar10_ont1b_gfa`, and `samovar10_illumina_100m`.
