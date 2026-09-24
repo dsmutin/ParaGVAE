@@ -3,15 +3,15 @@
 ``samovar``, ``megahit``, and ``kraken2`` are external binaries. They are not
 conda packages. :func:`require_tools` raises if any of them is missing.
 
-MetaMetro builds the assembly graph (``fastg_to_cfa``) and can project CFA
-colours into a CGT (``cfa_to_cdbg``, ``cdbg_to_cgt``). It has no function that
-reads Kraken output into those colours. That gap is
-``metametro.contracts.colouring.colour_by_kraken``.
+Kraken2 taxids become CFA colours through MetaMetro ``colour_cfa``. ``cfa_to_cdbg``
+and ``cdbg_to_cgt`` project those colour ids into CGT ``node_colors`` and
+``edge_colors``. Edges stay uncoloured.
 """
 
 from __future__ import annotations
 
 import json
+import re
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
@@ -21,8 +21,7 @@ import numpy as np
 from paragvae.metametro_path import ensure_metametro
 from paragvae.train import normalized_adjacency
 
-# Qualified name of the MetaMetro function that would paint a CFA from Kraken.
-KRAKEN_COLOUR_FN = "metametro.contracts.colouring.colour_by_kraken"
+_TAXID = re.compile(r"\(taxid\s+(\d+)\)")
 
 
 @dataclass
@@ -239,25 +238,94 @@ def _execute(stage: dict) -> None:
         run_command(argv)
 
 
-def _cgt_after_kraken(plan: dict) -> object:
-    """Load the FASTG as a CFA, then colour it from Kraken if MetaMetro can.
+def _kraken_assignments(path: Path) -> dict[str, int | None]:
+    """Map each Kraken2 sequence id to a taxid, or None when it has no colour.
 
-    ``fastg_to_cfa`` builds the assembly graph. ``colour_by_reads`` paints
-    sample depth. Kraken output needs :data:`KRAKEN_COLOUR_FN`. When that
-    function exists, the coloured CFA continues through ``cfa_to_cdbg`` and
-    ``cdbg_to_cgt``.
+    ``--output`` lines are tab-separated: status, sequence id, taxonomy,
+    length, k-mer detail. Status ``U``, or a taxonomy field with no
+    ``(taxid N)``, stores no colour. Status ``C`` with one taxid stores that
+    integer. The file must exist, contain at least one data line, and every
+    data line must have five columns.
+    """
+    if not path.is_file() or path.stat().st_size == 0:
+        raise FileNotFoundError(f"kraken output not found or empty: {path}")
+    assigned: dict[str, int | None] = {}
+    saw_data = False
+    for line_number, raw in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+        if raw.strip() == "":
+            continue
+        saw_data = True
+        fields = raw.split("\t")
+        if len(fields) != 5:
+            raise ValueError(f"{path} line {line_number} does not have 5 columns")
+        status, seq_id, taxonomy, _length, _detail = (field.strip() for field in fields)
+        if status not in {"C", "U"}:
+            raise ValueError(f"{path} line {line_number} has status {status!r}")
+        if seq_id == "":
+            raise ValueError(f"{path} line {line_number} has no sequence id")
+        if seq_id in assigned:
+            raise ValueError(f"duplicate kraken sequence id: {seq_id}")
+        found = _TAXID.findall(taxonomy)
+        if status == "U" or not found:
+            assigned[seq_id] = None
+            continue
+        if len(found) != 1:
+            raise ValueError(f"{path} line {line_number} has more than one taxid")
+        assigned[seq_id] = int(found[0])
+    if not saw_data:
+        raise ValueError(f"kraken output is empty: {path}")
+    return assigned
+
+
+def _node_colours(
+    node_ids: list[str],
+    assignments: dict[str, int | None],
+) -> tuple[dict[str, list[int]], list[dict[str, str]]]:
+    """Map sorted taxids to colour ids 0..C-1 and a CFA colours table."""
+    known = set(node_ids)
+    unknown = sorted(seq_id for seq_id in assignments if seq_id not in known)
+    if unknown:
+        raise ValueError("kraken sequence id is not a CFA node: " + ", ".join(unknown))
+    missing = sorted(node_id for node_id in node_ids if node_id not in assignments)
+    if missing:
+        raise ValueError("CFA node missing from kraken output: " + ", ".join(missing))
+    taxids = sorted({taxid for taxid in assignments.values() if taxid is not None})
+    colour_of = {taxid: index for index, taxid in enumerate(taxids)}
+    table = [
+        {"color_id": str(index), "namespace": "kraken2", "value": str(taxid)}
+        for index, taxid in enumerate(taxids)
+    ]
+    node_colors: dict[str, list[int]] = {}
+    for node_id in node_ids:
+        taxid = assignments[node_id]
+        node_colors[node_id] = [] if taxid is None else [colour_of[taxid]]
+    return node_colors, table
+
+
+def _cgt_after_kraken(plan: dict) -> object:
+    """Load FASTG, paint Kraken taxids with ``colour_cfa``, and return a CGT.
+
+    Sequence ids in the Kraken ``--output`` file are CFA ``node_id`` values.
+    A classified id that is not a node is an error. An unclassified node stays
+    uncoloured. Every contig must appear in the Kraken file. Edges are not
+    coloured. ``validate_cgt`` checks the tensor before it is returned.
     """
     from metametro.contracts.assembly import fastg_to_cfa
-    from metametro.contracts import colouring
+    from metametro.contracts.colouring import colour_cfa
 
     fastg = Path(plan["fastg"])
     if not fastg.is_file() or fastg.stat().st_size == 0:
         raise FileNotFoundError(f"FASTG not found: {fastg}")
     graph = fastg_to_cfa(fastg, k=int(plan["k"]), graph_id="ssl")
-    painter = getattr(colouring, "colour_by_kraken", None)
-    if painter is None:
-        raise NotImplementedError(KRAKEN_COLOUR_FN)
-    coloured = painter(graph, plan["kraken_out"], plan["kraken_report"])
+    assignments = _kraken_assignments(Path(plan["kraken_out"]))
+    node_colors, table = _node_colours([row["node_id"] for row in graph.nodes], assignments)
+    coloured = colour_cfa(
+        graph,
+        node_colors,
+        operation="replace",
+        colors=table,
+        target=("node",),
+    )
     from metametro.converters.cdbg_to_cgt import cdbg_to_cgt
     from metametro.converters.cfa_to_cdbg import cfa_to_cdbg
     from metametro.formats.cgt.validator import validate_cgt
@@ -293,11 +361,10 @@ def run_ssl(
     megahit: str = "megahit",
     kraken2: str = "kraken2",
 ) -> object:
-    """Run the planned stages, then project Kraken colours into a CGT.
+    """Run the planned stages, then project Kraken taxids into a CGT.
 
-    Returns a MetaMetro CGT when ``colour_by_kraken`` exists. When it does
-    not, this raises ``NotImplementedError`` with :data:`KRAKEN_COLOUR_FN`
-    after the external stages and ``fastg_to_cfa``.
+    Returns a MetaMetro CGT. Classified contigs carry a Kraken colour column.
+    Unclassified contigs stay uncoloured.
     """
     require_tools(samovar=samovar, megahit=megahit, kraken2=kraken2)
     plan = ssl_plan(

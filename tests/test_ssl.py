@@ -8,7 +8,6 @@ import numpy as np
 import pytest
 
 from paragvae.ssl import (
-    KRAKEN_COLOUR_FN,
     _cgt_after_kraken,
     _class_weights,
     fit_supervised_gcn,
@@ -96,32 +95,43 @@ def test_class_weight_is_inverse_sqrt_count() -> None:
     assert weights.shape == (2,)
 
 
-def test_kraken_colouring_stops_at_named_gap(tmp_path: Path) -> None:
-    """FASTG is loaded with MetaMetro, then Kraken colouring names the missing function."""
+def test_kraken_taxids_colour_one_cgt_node(tmp_path: Path) -> None:
+    """One classified contig sets the only CGT colour column. A short Kraken line fails."""
     from paragvae.metametro_path import ensure_metametro
 
     try:
         ensure_metametro()
     except FileNotFoundError:
         pytest.skip("MetaMetro checkout is not on this machine")
-    from metametro.errors import ContractError
-
-    bad = tmp_path / "bad.fastg"
-    bad.write_text("not a fastg\n", encoding="utf-8")
-    plan = {
-        "fastg": str(bad),
-        "k": 21,
-        "kraken_out": "kraken.out",
-        "kraken_report": "kraken.report",
-    }
-    with pytest.raises(ContractError):
-        _cgt_after_kraken(plan)
     fastg = tmp_path / "k21.fastg"
-    fastg.write_text(">NODE_1_length_32_cov_1.0_ID_1;\n" + ("ACGT" * 8) + "\n", encoding="utf-8")
-    plan["fastg"] = str(fastg)
-    with pytest.raises(NotImplementedError) as caught:
-        _cgt_after_kraken(plan)
-    assert str(caught.value) == KRAKEN_COLOUR_FN
+    fastg.write_text(
+        ">NODE_1_length_32_cov_1.0_ID_1;\n" + ("A" * 32) + "\n"
+        ">NODE_2_length_32_cov_1.0_ID_2;\n" + ("C" * 32) + "\n",
+        encoding="utf-8",
+    )
+    kraken = tmp_path / "kraken.out"
+    kraken.write_text(
+        "C\tn000001\tEscherichia coli (taxid 562)\t32\t562:8\n"
+        "U\tn000002\tunclassified (taxid 0)\t32\t0:32\n",
+        encoding="utf-8",
+    )
+    cgt = _cgt_after_kraken(
+        {"fastg": str(fastg), "k": 21, "kraken_out": str(kraken), "kraken_report": "unused"}
+    )
+    assert cgt.node_colors.shape == (2, 1)
+    assert list(cgt.color_ids) == [0]
+    dense = {
+        node_id: int(row["dense_id"])
+        for row in cgt.mapping
+        for node_id in row["cfa_node_ids"]
+    }
+    assert int(cgt.node_colors[dense["n000001"], 0]) == 1
+    assert int(cgt.node_colors[dense["n000002"], 0]) == 0
+    assert int(cgt.edge_colors.sum()) == 0
+    bad = tmp_path / "bad.out"
+    bad.write_text("C\tn000001\tEscherichia coli (taxid 562)\t32\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="5 columns"):
+        _cgt_after_kraken({"fastg": str(fastg), "k": 21, "kraken_out": str(bad)})
 
 
 def test_supervised_gcn_beats_chance_on_the_train_mask() -> None:
