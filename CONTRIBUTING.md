@@ -14,11 +14,12 @@ CLI (paragvae.cli)
 tests/          mandatory vs optional pytest
 examples/toy/   end-to-end run of the current (baseline) tool
 cite/           BibTeX for integrated third-party tools
-wiki/           contracts, test data, integrative testing
 agents/         portable rules and skills (any IDE)
 ```
 
-Replace baseline bodies with real implementations. Keep the documented return keys until you change the contract in `wiki/Contracts.md` and the tests together.
+Contracts, test data, and integrative testing are on the [GitHub wiki](https://github.com/dsmutin/ParaGVAE/wiki). There is no `wiki/` tree in this repository.
+
+Replace baseline bodies with real implementations. Keep the documented return keys until you change the contract on the [wiki Contracts page](https://github.com/dsmutin/ParaGVAE/wiki/Contracts) and the tests together.
 
 ## Testing architecture
 
