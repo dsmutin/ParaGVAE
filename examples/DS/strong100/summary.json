@@ -1,0 +1,14 @@
+{
+  "name": "strong100",
+  "n": 852,
+  "n_classes": 81,
+  "n_edges_undirected": 550,
+  "n_isolated": 456,
+  "error_rate": 0.5176056338028169,
+  "stable_error_rate": 0.3931924882629108,
+  "error_agreement": 0.7605633802816901,
+  "f1_seed0": 0.323943661971831,
+  "ari_seed0": 0.2935575216707331,
+  "epochs_seed0": 36,
+  "protocol": "Model inputs are the published 32-d VAE latent in `node_features.npy`, on the assembly CSR. Depth is `node_attributes_depth.npy` and is checked to be the last column of the raw matrix. The k-mer matrix is 136-d and is not a model input on this dataset. Standard edge loss, at most 60 epochs, patience 8, learning rate 0.05. Seeds 0 and 1."
+}

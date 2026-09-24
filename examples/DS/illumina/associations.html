@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    #vis.vega-embed {
+      width: 100%;
+      display: flex;
+    }
+
+    #vis.vega-embed details,
+    #vis.vega-embed details summary {
+      position: relative;
+    }
+  </style>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega@6"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega-lite@6.4.1"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega-embed@7"></script>
+</head>
+<body>
+  <div id="vis"></div>
+  <script>
+    (function(vegaEmbed) {
+      var spec = {"config": {"view": {"continuousWidth": 300, "continuousHeight": 300}}, "data": {"name": "data-753a5e07b98db1b700d8adac4cb6c1b3"}, "mark": {"type": "bar"}, "encoding": {"color": {"field": "role", "title": "Feature role", "type": "nominal"}, "tooltip": [{"field": "feature", "type": "nominal"}, {"field": "role", "type": "nominal"}, {"field": "rho", "format": ".3f", "type": "quantitative"}, {"field": "permutation_p", "format": ".3f", "type": "quantitative"}, {"field": "n", "type": "quantitative"}], "x": {"field": "rho", "title": "Spearman rho with node error", "type": "quantitative"}, "y": {"field": "feature", "sort": "-x", "title": null, "type": "nominal"}}, "height": 236, "title": "Association with node error", "width": 360, "$schema": "https://vega.github.io/schema/vega-lite/v6.4.1.json", "datasets": {"data-753a5e07b98db1b700d8adac4cb6c1b3": [{"feature": "degree", "role": "graph", "n": 5140.0, "rho": 0.019552583586888633, "permutation_p": 0.11940298507462686}, {"feature": "clustering", "role": "graph", "n": 5140.0, "rho": 0.018046987914930875, "permutation_p": 0.208955223880597}, {"feature": "component_size", "role": "graph", "n": 5140.0, "rho": -0.008786445300719183, "permutation_p": 1.0}, {"feature": "boundary", "role": "diagnostic_uses_labels", "n": 5139.0, "rho": -0.1756644232319909, "permutation_p": 0.004975124378109453}, {"feature": "class_size", "role": "diagnostic_uses_labels", "n": 5140.0, "rho": -0.465113847333548, "permutation_p": 0.004975124378109453}, {"feature": "depth", "role": "model_input", "n": 5140.0, "rho": -0.05108521113414749, "permutation_p": 0.004975124378109453}, {"feature": "kmer_distance_to_class_mean", "role": "diagnostic_uses_labels", "n": 5140.0, "rho": 0.1952496800926405, "permutation_p": 0.004975124378109453}]}};
+      var embedOpt = {"mode": "vega-lite"};
+
+      function showError(el, error){
+          el.innerHTML = ('<div style="color:red;">'
+                          + '<p>JavaScript Error: ' + error.message + '</p>'
+                          + "<p>This usually means there's a typo in your chart specification. "
+                          + "See the javascript console for the full traceback.</p>"
+                          + '</div>');
+          throw error;
+      }
+      const el = document.getElementById('vis');
+      vegaEmbed("#vis", spec, embedOpt)
+        .catch(error => showError(el, error));
+    })(vegaEmbed);
+
+  </script>
+</body>
+</html>

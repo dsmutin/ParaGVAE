@@ -1,0 +1,14 @@
+{
+  "name": "spb_transit",
+  "n": 4570,
+  "n_classes": 7,
+  "n_edges_undirected": 7733,
+  "n_isolated": 26,
+  "error_rate": 0.31181619256017507,
+  "stable_error_rate": 0.31181619256017507,
+  "error_agreement": 1.0,
+  "f1_seed0": 0.22691466083150985,
+  "ari_seed0": 0.007167724345026096,
+  "epochs_seed0": 12,
+  "protocol": "MetaMetro `data/work/spb_ground_transit`. The node class is the sorted combination of `transport_type` colours (bus, tram, trolley, and the mixed labels). It is not a single route id. Model inputs are longitude, latitude, and the simulated passenger coverage from the CFA. Edge weight is that coverage on the hop. Route colours are multi-label and are scored afterwards as cluster cohesion, not as the k-means target. Standard edge loss, at most 60 epochs, patience 8, learning rate 0.05. Seeds 0 and 1."
+}

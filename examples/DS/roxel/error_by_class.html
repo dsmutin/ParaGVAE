@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    #vis.vega-embed {
+      width: 100%;
+      display: flex;
+    }
+
+    #vis.vega-embed details,
+    #vis.vega-embed details summary {
+      position: relative;
+    }
+  </style>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega@6"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega-lite@6.4.1"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega-embed@7"></script>
+</head>
+<body>
+  <div id="vis"></div>
+  <script>
+    (function(vegaEmbed) {
+      var spec = {"config": {"view": {"continuousWidth": 300, "continuousHeight": 300}}, "data": {"name": "data-09deb573516e2ec463c0705f6c915273"}, "mark": {"type": "circle", "size": 60}, "encoding": {"tooltip": [{"field": "label_name", "type": "nominal"}, {"field": "n", "type": "quantitative"}, {"field": "error_rate", "format": ".3f", "type": "quantitative"}], "x": {"field": "class_size", "scale": {"type": "log"}, "title": "Class size", "type": "quantitative"}, "y": {"field": "error_rate", "scale": {"domain": [0, 1]}, "title": "Error rate", "type": "quantitative"}}, "height": 240, "title": "Per-class error against class size", "width": 360, "$schema": "https://vega.github.io/schema/vega-lite/v6.4.1.json", "datasets": {"data-09deb573516e2ec463c0705f6c915273": [{"label_name": "Unclassified", "class_size": 13.0, "error_rate": 1.0, "n": 13}, {"label_name": "cycleway", "class_size": 30.0, "error_rate": 1.0, "n": 30}, {"label_name": "footway", "class_size": 39.0, "error_rate": 1.0, "n": 39}, {"label_name": "path", "class_size": 70.0, "error_rate": 0.7857142857142857, "n": 70}, {"label_name": "residential", "class_size": 260.0, "error_rate": 0.12307692307692308, "n": 260}, {"label_name": "secondary", "class_size": 46.0, "error_rate": 0.782608695652174, "n": 46}, {"label_name": "service", "class_size": 116.0, "error_rate": 0.8620689655172413, "n": 116}, {"label_name": "track", "class_size": 1.0, "error_rate": 1.0, "n": 1}, {"label_name": "unclassified", "class_size": 13.0, "error_rate": 1.0, "n": 13}]}};
+      var embedOpt = {"mode": "vega-lite"};
+
+      function showError(el, error){
+          el.innerHTML = ('<div style="color:red;">'
+                          + '<p>JavaScript Error: ' + error.message + '</p>'
+                          + "<p>This usually means there's a typo in your chart specification. "
+                          + "See the javascript console for the full traceback.</p>"
+                          + '</div>');
+          throw error;
+      }
+      const el = document.getElementById('vis');
+      vegaEmbed("#vis", spec, embedOpt)
+        .catch(error => showError(el, error));
+    })(vegaEmbed);
+
+  </script>
+</body>
+</html>

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    #vis.vega-embed {
+      width: 100%;
+      display: flex;
+    }
+
+    #vis.vega-embed details,
+    #vis.vega-embed details summary {
+      position: relative;
+    }
+  </style>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega@6"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega-lite@6.4.1"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega-embed@7"></script>
+</head>
+<body>
+  <div id="vis"></div>
+  <script>
+    (function(vegaEmbed) {
+      var spec = {"config": {"view": {"continuousWidth": 300, "continuousHeight": 300}}, "data": {"name": "data-ee88d882b60b1a2db4e787007e457201"}, "mark": {"type": "bar"}, "encoding": {"tooltip": [{"field": "degree_bin", "type": "nominal"}, {"field": "n", "type": "quantitative"}, {"field": "error_rate", "format": ".3f", "type": "quantitative"}], "x": {"field": "degree_bin", "sort": ["0 isolated", "1 tip", "2 path", "3+ branch"], "title": "Degree, self-loops removed", "type": "nominal"}, "y": {"field": "error_rate", "scale": {"domain": [0, 1]}, "title": "Error rate", "type": "quantitative"}}, "height": 220, "title": "Errors by graph role", "width": 320, "$schema": "https://vega.github.io/schema/vega-lite/v6.4.1.json", "datasets": {"data-ee88d882b60b1a2db4e787007e457201": [{"degree_bin": "0 isolated", "error_rate": 1.0, "n": 1}, {"degree_bin": "1 tip", "error_rate": 0.8362831858407079, "n": 226}, {"degree_bin": "2 path", "error_rate": 0.691066066066066, "n": 2664}, {"degree_bin": "3+ branch", "error_rate": 0.7332147621164962, "n": 2249}]}};
+      var embedOpt = {"mode": "vega-lite"};
+
+      function showError(el, error){
+          el.innerHTML = ('<div style="color:red;">'
+                          + '<p>JavaScript Error: ' + error.message + '</p>'
+                          + "<p>This usually means there's a typo in your chart specification. "
+                          + "See the javascript console for the full traceback.</p>"
+                          + '</div>');
+          throw error;
+      }
+      const el = document.getElementById('vis');
+      vegaEmbed("#vis", spec, embedOpt)
+        .catch(error => showError(el, error));
+    })(vegaEmbed);
+
+  </script>
+</body>
+</html>

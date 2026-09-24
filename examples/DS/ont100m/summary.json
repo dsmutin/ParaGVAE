@@ -1,0 +1,14 @@
+{
+  "name": "ont100m",
+  "n": 383,
+  "n_classes": 10,
+  "n_edges_undirected": 23,
+  "n_isolated": 353,
+  "error_rate": 0.6579634464751958,
+  "stable_error_rate": 0.4856396866840731,
+  "error_agreement": 0.7650130548302873,
+  "f1_seed0": 0.24281984334203655,
+  "ari_seed0": 0.10214733832664594,
+  "epochs_seed0": 22,
+  "protocol": "This bundle has no separate 32-d VAE latent: `node_features.npy` equals k-mer (136-d) plus depth. The GCN therefore sees depth. The assembly graph is the CSR from the VAEGbin bundle. Standard edge loss, at most 60 epochs, patience 8, learning rate 0.05. Seeds 0 and 1."
+}

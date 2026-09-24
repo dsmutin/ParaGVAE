@@ -1,0 +1,14 @@
+{
+  "name": "ont1b",
+  "n": 239,
+  "n_classes": 10,
+  "n_edges_undirected": 296,
+  "n_isolated": 11,
+  "error_rate": 0.5439330543933054,
+  "stable_error_rate": 0.4100418410041841,
+  "error_agreement": 0.698744769874477,
+  "f1_seed0": 0.2928870292887029,
+  "ari_seed0": 0.12509615694811743,
+  "epochs_seed0": 60,
+  "protocol": "This bundle has no separate 32-d VAE latent: `node_features.npy` equals k-mer (136-d) plus depth. The GCN therefore sees depth. The assembly graph is the CSR from the VAEGbin bundle. Standard edge loss, at most 60 epochs, patience 8, learning rate 0.05. Seeds 0 and 1."
+}

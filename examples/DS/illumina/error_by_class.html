@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    #vis.vega-embed {
+      width: 100%;
+      display: flex;
+    }
+
+    #vis.vega-embed details,
+    #vis.vega-embed details summary {
+      position: relative;
+    }
+  </style>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega@6"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega-lite@6.4.1"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega-embed@7"></script>
+</head>
+<body>
+  <div id="vis"></div>
+  <script>
+    (function(vegaEmbed) {
+      var spec = {"config": {"view": {"continuousWidth": 300, "continuousHeight": 300}}, "data": {"name": "data-39313dc5f8c49ad753c5c3b9c13645fd"}, "mark": {"type": "circle", "size": 60}, "encoding": {"tooltip": [{"field": "label_name", "type": "nominal"}, {"field": "n", "type": "quantitative"}, {"field": "error_rate", "format": ".3f", "type": "quantitative"}], "x": {"field": "class_size", "scale": {"type": "log"}, "title": "Class size", "type": "quantitative"}, "y": {"field": "error_rate", "scale": {"domain": [0, 1]}, "title": "Error rate", "type": "quantitative"}}, "height": 240, "title": "Per-class error against class size", "width": 360, "$schema": "https://vega.github.io/schema/vega-lite/v6.4.1.json", "datasets": {"data-39313dc5f8c49ad753c5c3b9c13645fd": [{"label_name": "0", "class_size": 914.0, "error_rate": 0.40809628008752735, "n": 914}, {"label_name": "1", "class_size": 276.0, "error_rate": 0.7137681159420289, "n": 276}, {"label_name": "2", "class_size": 234.0, "error_rate": 1.0, "n": 234}, {"label_name": "3", "class_size": 295.0, "error_rate": 1.0, "n": 295}, {"label_name": "4", "class_size": 543.0, "error_rate": 1.0, "n": 543}, {"label_name": "5", "class_size": 336.0, "error_rate": 0.5416666666666666, "n": 336}, {"label_name": "6", "class_size": 733.0, "error_rate": 0.975443383356071, "n": 733}, {"label_name": "7", "class_size": 984.0, "error_rate": 0.32113821138211385, "n": 984}, {"label_name": "8", "class_size": 452.0, "error_rate": 1.0, "n": 452}, {"label_name": "9", "class_size": 373.0, "error_rate": 1.0, "n": 373}]}};
+      var embedOpt = {"mode": "vega-lite"};
+
+      function showError(el, error){
+          el.innerHTML = ('<div style="color:red;">'
+                          + '<p>JavaScript Error: ' + error.message + '</p>'
+                          + "<p>This usually means there's a typo in your chart specification. "
+                          + "See the javascript console for the full traceback.</p>"
+                          + '</div>');
+          throw error;
+      }
+      const el = document.getElementById('vis');
+      vegaEmbed("#vis", spec, embedOpt)
+        .catch(error => showError(el, error));
+    })(vegaEmbed);
+
+  </script>
+</body>
+</html>

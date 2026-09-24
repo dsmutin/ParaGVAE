@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    #vis.vega-embed {
+      width: 100%;
+      display: flex;
+    }
+
+    #vis.vega-embed details,
+    #vis.vega-embed details summary {
+      position: relative;
+    }
+  </style>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega@6"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega-lite@6.4.1"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega-embed@7"></script>
+</head>
+<body>
+  <div id="vis"></div>
+  <script>
+    (function(vegaEmbed) {
+      var spec = {"config": {"view": {"continuousWidth": 300, "continuousHeight": 300}}, "data": {"name": "data-85c841a67dcc50da122370c411306709"}, "mark": {"type": "circle", "size": 60}, "encoding": {"tooltip": [{"field": "label_name", "type": "nominal"}, {"field": "n", "type": "quantitative"}, {"field": "error_rate", "format": ".3f", "type": "quantitative"}], "x": {"field": "class_size", "scale": {"type": "log"}, "title": "Class size", "type": "quantitative"}, "y": {"field": "error_rate", "scale": {"domain": [0, 1]}, "title": "Error rate", "type": "quantitative"}}, "height": 240, "title": "Per-class error against class size", "width": 360, "$schema": "https://vega.github.io/schema/vega-lite/v6.4.1.json", "datasets": {"data-85c841a67dcc50da122370c411306709": [{"label_name": "T1", "class_size": 18.0, "error_rate": 0.7777777777777778, "n": 18}, {"label_name": "T3", "class_size": 156.0, "error_rate": 0.391025641025641, "n": 156}, {"label_name": "T4", "class_size": 389.0, "error_rate": 0.02313624678663239, "n": 389}, {"label_name": "T5", "class_size": 177.0, "error_rate": 1.0, "n": 177}, {"label_name": "T7", "class_size": 163.0, "error_rate": 1.0, "n": 163}, {"label_name": "unclassified_or_mixed", "class_size": 80.0, "error_rate": 0.1, "n": 80}]}};
+      var embedOpt = {"mode": "vega-lite"};
+
+      function showError(el, error){
+          el.innerHTML = ('<div style="color:red;">'
+                          + '<p>JavaScript Error: ' + error.message + '</p>'
+                          + "<p>This usually means there's a typo in your chart specification. "
+                          + "See the javascript console for the full traceback.</p>"
+                          + '</div>');
+          throw error;
+      }
+      const el = document.getElementById('vis');
+      vegaEmbed("#vis", spec, embedOpt)
+        .catch(error => showError(el, error));
+    })(vegaEmbed);
+
+  </script>
+</body>
+</html>

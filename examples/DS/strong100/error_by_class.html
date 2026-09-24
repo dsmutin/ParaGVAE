@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    #vis.vega-embed {
+      width: 100%;
+      display: flex;
+    }
+
+    #vis.vega-embed details,
+    #vis.vega-embed details summary {
+      position: relative;
+    }
+  </style>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega@6"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega-lite@6.4.1"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega-embed@7"></script>
+</head>
+<body>
+  <div id="vis"></div>
+  <script>
+    (function(vegaEmbed) {
+      var spec = {"config": {"view": {"continuousWidth": 300, "continuousHeight": 300}}, "data": {"name": "data-051be25af49fc1375680edcce57a5bbf"}, "mark": {"type": "circle", "size": 60}, "encoding": {"tooltip": [{"field": "label_name", "type": "nominal"}, {"field": "n", "type": "quantitative"}, {"field": "error_rate", "format": ".3f", "type": "quantitative"}], "x": {"field": "class_size", "scale": {"type": "log"}, "title": "Class size", "type": "quantitative"}, "y": {"field": "error_rate", "scale": {"domain": [0, 1]}, "title": "Error rate", "type": "quantitative"}}, "height": 240, "title": "Per-class error against class size", "width": 360, "$schema": "https://vega.github.io/schema/vega-lite/v6.4.1.json", "datasets": {"data-051be25af49fc1375680edcce57a5bbf": [{"label_name": "0", "class_size": 32.0, "error_rate": 0.0625, "n": 32}, {"label_name": "1", "class_size": 5.0, "error_rate": 1.0, "n": 5}, {"label_name": "10", "class_size": 2.0, "error_rate": 1.0, "n": 2}, {"label_name": "11", "class_size": 2.0, "error_rate": 1.0, "n": 2}, {"label_name": "12", "class_size": 3.0, "error_rate": 1.0, "n": 3}, {"label_name": "13", "class_size": 19.0, "error_rate": 0.8421052631578947, "n": 19}, {"label_name": "14", "class_size": 12.0, "error_rate": 0.5, "n": 12}, {"label_name": "15", "class_size": 3.0, "error_rate": 0.3333333333333333, "n": 3}, {"label_name": "16", "class_size": 3.0, "error_rate": 0.0, "n": 3}, {"label_name": "17", "class_size": 15.0, "error_rate": 0.2, "n": 15}, {"label_name": "18", "class_size": 1.0, "error_rate": 1.0, "n": 1}, {"label_name": "19", "class_size": 1.0, "error_rate": 1.0, "n": 1}, {"label_name": "2", "class_size": 53.0, "error_rate": 0.05660377358490566, "n": 53}, {"label_name": "20", "class_size": 3.0, "error_rate": 1.0, "n": 3}, {"label_name": "21", "class_size": 12.0, "error_rate": 1.0, "n": 12}, {"label_name": "22", "class_size": 15.0, "error_rate": 0.9333333333333333, "n": 15}, {"label_name": "23", "class_size": 1.0, "error_rate": 1.0, "n": 1}, {"label_name": "24", "class_size": 3.0, "error_rate": 1.0, "n": 3}, {"label_name": "25", "class_size": 11.0, "error_rate": 0.5454545454545454, "n": 11}, {"label_name": "26", "class_size": 2.0, "error_rate": 1.0, "n": 2}, {"label_name": "27", "class_size": 1.0, "error_rate": 1.0, "n": 1}, {"label_name": "28", "class_size": 10.0, "error_rate": 0.9, "n": 10}, {"label_name": "29", "class_size": 28.0, "error_rate": 0.7857142857142857, "n": 28}, {"label_name": "3", "class_size": 4.0, "error_rate": 0.25, "n": 4}, {"label_name": "30", "class_size": 3.0, "error_rate": 1.0, "n": 3}, {"label_name": "31", "class_size": 1.0, "error_rate": 1.0, "n": 1}, {"label_name": "33", "class_size": 2.0, "error_rate": 0.0, "n": 2}, {"label_name": "34", "class_size": 22.0, "error_rate": 0.3181818181818182, "n": 22}, {"label_name": "35", "class_size": 19.0, "error_rate": 0.42105263157894735, "n": 19}, {"label_name": "36", "class_size": 25.0, "error_rate": 0.16, "n": 25}, {"label_name": "37", "class_size": 32.0, "error_rate": 1.0, "n": 32}, {"label_name": "38", "class_size": 3.0, "error_rate": 1.0, "n": 3}, {"label_name": "39", "class_size": 2.0, "error_rate": 1.0, "n": 2}, {"label_name": "4", "class_size": 11.0, "error_rate": 0.09090909090909091, "n": 11}, {"label_name": "40", "class_size": 12.0, "error_rate": 0.25, "n": 12}, {"label_name": "41", "class_size": 2.0, "error_rate": 1.0, "n": 2}, {"label_name": "42", "class_size": 13.0, "error_rate": 1.0, "n": 13}, {"label_name": "43", "class_size": 2.0, "error_rate": 0.0, "n": 2}, {"label_name": "44", "class_size": 9.0, "error_rate": 0.4444444444444444, "n": 9}, {"label_name": "45", "class_size": 8.0, "error_rate": 1.0, "n": 8}, {"label_name": "46", "class_size": 1.0, "error_rate": 1.0, "n": 1}, {"label_name": "47", "class_size": 1.0, "error_rate": 1.0, "n": 1}, {"label_name": "48", "class_size": 18.0, "error_rate": 0.3333333333333333, "n": 18}, {"label_name": "49", "class_size": 18.0, "error_rate": 0.5555555555555556, "n": 18}, {"label_name": "5", "class_size": 5.0, "error_rate": 1.0, "n": 5}, {"label_name": "50", "class_size": 25.0, "error_rate": 0.48, "n": 25}, {"label_name": "51", "class_size": 45.0, "error_rate": 0.5333333333333333, "n": 45}, {"label_name": "52", "class_size": 2.0, "error_rate": 1.0, "n": 2}, {"label_name": "53", "class_size": 6.0, "error_rate": 0.0, "n": 6}, {"label_name": "54", "class_size": 10.0, "error_rate": 0.9, "n": 10}, {"label_name": "55", "class_size": 1.0, "error_rate": 1.0, "n": 1}, {"label_name": "56", "class_size": 4.0, "error_rate": 0.5, "n": 4}, {"label_name": "57", "class_size": 38.0, "error_rate": 0.5, "n": 38}, {"label_name": "58", "class_size": 1.0, "error_rate": 1.0, "n": 1}, {"label_name": "59", "class_size": 4.0, "error_rate": 0.25, "n": 4}, {"label_name": "6", "class_size": 3.0, "error_rate": 0.0, "n": 3}, {"label_name": "60", "class_size": 8.0, "error_rate": 1.0, "n": 8}, {"label_name": "61", "class_size": 8.0, "error_rate": 1.0, "n": 8}, {"label_name": "62", "class_size": 1.0, "error_rate": 1.0, "n": 1}, {"label_name": "63", "class_size": 4.0, "error_rate": 1.0, "n": 4}, {"label_name": "64", "class_size": 17.0, "error_rate": 0.47058823529411764, "n": 17}, {"label_name": "65", "class_size": 5.0, "error_rate": 0.4, "n": 5}, {"label_name": "66", "class_size": 7.0, "error_rate": 0.5714285714285714, "n": 7}, {"label_name": "67", "class_size": 61.0, "error_rate": 0.01639344262295082, "n": 61}, {"label_name": "68", "class_size": 9.0, "error_rate": 1.0, "n": 9}, {"label_name": "69", "class_size": 3.0, "error_rate": 1.0, "n": 3}, {"label_name": "7", "class_size": 24.0, "error_rate": 0.4583333333333333, "n": 24}, {"label_name": "70", "class_size": 1.0, "error_rate": 1.0, "n": 1}, {"label_name": "71", "class_size": 3.0, "error_rate": 0.3333333333333333, "n": 3}, {"label_name": "72", "class_size": 3.0, "error_rate": 1.0, "n": 3}, {"label_name": "73", "class_size": 2.0, "error_rate": 0.0, "n": 2}, {"label_name": "74", "class_size": 10.0, "error_rate": 1.0, "n": 10}, {"label_name": "75", "class_size": 3.0, "error_rate": 1.0, "n": 3}, {"label_name": "76", "class_size": 16.0, "error_rate": 0.625, "n": 16}, {"label_name": "77", "class_size": 22.0, "error_rate": 0.36363636363636365, "n": 22}, {"label_name": "78", "class_size": 29.0, "error_rate": 0.896551724137931, "n": 29}, {"label_name": "79", "class_size": 1.0, "error_rate": 1.0, "n": 1}, {"label_name": "8", "class_size": 14.0, "error_rate": 0.6428571428571429, "n": 14}, {"label_name": "80", "class_size": 1.0, "error_rate": 1.0, "n": 1}, {"label_name": "81", "class_size": 4.0, "error_rate": 0.25, "n": 4}, {"label_name": "9", "class_size": 7.0, "error_rate": 0.5714285714285714, "n": 7}]}};
+      var embedOpt = {"mode": "vega-lite"};
+
+      function showError(el, error){
+          el.innerHTML = ('<div style="color:red;">'
+                          + '<p>JavaScript Error: ' + error.message + '</p>'
+                          + "<p>This usually means there's a typo in your chart specification. "
+                          + "See the javascript console for the full traceback.</p>"
+                          + '</div>');
+          throw error;
+      }
+      const el = document.getElementById('vis');
+      vegaEmbed("#vis", spec, embedOpt)
+        .catch(error => showError(el, error));
+    })(vegaEmbed);
+
+  </script>
+</body>
+</html>

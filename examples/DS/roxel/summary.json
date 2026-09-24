@@ -1,0 +1,14 @@
+{
+  "name": "roxel",
+  "n": 588,
+  "n_classes": 9,
+  "n_edges_undirected": 727,
+  "n_isolated": 107,
+  "error_rate": 0.5425170068027211,
+  "stable_error_rate": 0.4880952380952381,
+  "error_agreement": 0.8758503401360545,
+  "f1_seed0": 0.23639455782312926,
+  "ari_seed0": 0.040909213487141,
+  "epochs_seed0": 33,
+  "protocol": "MetaMetro `data/work/roxel`, the sfnetworks Roxel street example. The node class is the road type. The node colour matrix is all zeros; street names are edge colours and are not the node target. Model inputs are longitude and latitude only. Standard edge loss, at most 60 epochs, patience 8, learning rate 0.05. Seeds 0 and 1. The stored class names include a case split: unclassified and Unclassified. They are kept as separate classes."
+}

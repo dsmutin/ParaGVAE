@@ -1,0 +1,14 @@
+{
+  "name": "phage",
+  "n": 983,
+  "n_classes": 6,
+  "n_edges_undirected": 621,
+  "n_isolated": 506,
+  "error_rate": 0.43947100712105797,
+  "stable_error_rate": 0.3570701932858596,
+  "error_agreement": 0.8402848423194303,
+  "f1_seed0": 0.5289928789420142,
+  "ari_seed0": 0.44403924609441103,
+  "epochs_seed0": 21,
+  "protocol": "MetaMetro `data/work/phage_x10`. The CGT node feature is only `out_degree`. Coverage is the coloured-CFA node column. Length and GC are computed from `nodes.fna`. Sample colours are the two sample columns and are not concatenated into the model. Label 0 is the unclassified or mixed class recorded in MetaMetro `docs/baseline-run.md`; the other labels are T1, T3, T4, T5, and T7. Standard edge loss, at most 60 epochs, patience 8, learning rate 0.05. Seeds 0 and 1."
+}

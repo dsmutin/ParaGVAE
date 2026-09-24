@@ -1,0 +1,14 @@
+{
+  "name": "illumina",
+  "n": 5140,
+  "n_classes": 10,
+  "n_edges_undirected": 6722,
+  "n_isolated": 1,
+  "error_rate": 0.7159533073929961,
+  "stable_error_rate": 0.6114785992217899,
+  "error_agreement": 0.8040856031128405,
+  "f1_seed0": 0.15797665369649805,
+  "ari_seed0": 0.05188638135273657,
+  "epochs_seed0": 60,
+  "protocol": "This bundle has no separate 32-d VAE latent: `node_features.npy` equals k-mer (136-d) plus depth. The GCN therefore sees depth. The assembly graph is the CSR from the VAEGbin bundle. Standard edge loss, at most 60 epochs, patience 8, learning rate 0.05. Seeds 0 and 1."
+}
