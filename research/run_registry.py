@@ -21,6 +21,12 @@ import numpy as np
 from paragvae.arch import train_architecture
 from paragvae.cluster_methods import cluster_hdbscan, cluster_kmeans, cluster_vamb
 from paragvae.completion import completion_paths, load_completion
+from paragvae.metametro_path import training_arrays
+from paragvae.provenance_checks import (
+    assert_labels_are_simulation_taxids,
+    assert_training_inputs_hide_labels,
+    simulation_tax_ids,
+)
 from paragvae.flip import edge_line_graph, infer_nodes_from_edges
 from paragvae.score import contig_f1
 from paragvae.suite import ROOT, load_config
@@ -73,23 +79,14 @@ def main() -> None:
             rows.extend(csv.DictReader(handle))
     for name, path in paths.items():
         print(f"loading {name}", flush=True)
-        graph, bio = load_completion(name, path, config["metametro_src"])
+        graph, bio = load_completion(name, path)
         labels = np.asarray(graph.labels)
+        if name != "phage_x10":
+            assert_labels_are_simulation_taxids(labels, simulation_tax_ids(path / "accessions.tsv"))
+        _tensor_features, indptr, indices, edge_weight = training_arrays(graph.cgt)
         features = np.asarray(graph.raw_features, dtype=np.float32)
-        indptr = np.asarray(graph.cgt.indptr)
-        indices = np.asarray(graph.cgt.indices)
-        edge_weight = np.asarray(graph.cgt.edge_features, dtype=np.float32)
-        nnz = int(indptr[-1]) if len(indptr) else 0
-        if edge_weight.ndim == 2 and edge_weight.shape[1] == 0:
-            edge_weight = None
-        elif edge_weight.ndim == 2:
-            if edge_weight.shape[0] != nnz:
-                raise ValueError(f"{name} edge features do not match the CSR")
-            edge_weight = edge_weight[:, 0]
-        elif edge_weight.size == 0:
-            edge_weight = None
-        else:
-            edge_weight = edge_weight.reshape(-1)
+        if features.shape[0] != _tensor_features.shape[0]:
+            raise ValueError(f"{name} raw features do not match the CGT")
         n_edges = int(indptr[-1]) if len(indptr) else 0
         for seed in config["seeds"]:
             for arm, architecture, n_layers, loss, flip, clusterings in ARMS:
@@ -97,11 +94,20 @@ def main() -> None:
                 if key in done and all((name, int(seed), arm, method) in done for method in clusterings):
                     continue
                 note = ""
-                if loss == "biological" and bio is None:
+                if loss == "biological":
                     for method in clusterings:
-                        rows.append(_missing(name, seed, arm, architecture, n_layers, loss, method, features.shape[0], n_edges, "no Kraken call table for this graph"))
+                        rows.append(_missing(
+                            name, seed, arm, architecture, n_layers, loss, method, features.shape[0], n_edges,
+                            "biological loss uses Kraken calls, not the pre-generation read taxid, and is not a training input",
+                        ))
                     _write(destination, rows)
                     continue
+                assert_training_inputs_hide_labels(
+                    labels,
+                    features,
+                    colors=np.zeros((features.shape[0], 0), dtype=np.uint8),
+                    edge_weight=edge_weight,
+                )
                 try:
                     trained = _train(
                         features, indptr, indices, edge_weight, architecture, n_layers, loss, flip, bio, seed, config

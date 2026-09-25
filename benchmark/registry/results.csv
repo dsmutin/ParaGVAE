@@ -32,7 +32,7 @@ heldout_genera,0,gcn_layers3,gcn,3,standard,kmeans,ok,0.163535,0.108929,18,1,643
 heldout_genera,0,transformer,transformer,1,standard,kmeans,ok,0.284050,0.158864,11,1,6439,24,
 heldout_genera,0,proxy,gcn,2,proxy,kmeans,ok,0.188383,0.113953,17,1,6439,24,
 heldout_genera,0,contrastive,gcn,2,contrastive,kmeans,ok,0.133872,0.098792,27,1,6439,24,
-heldout_genera,0,biological,gcn,2,biological,kmeans,ok,0.157323,0.102276,28,1,6439,24,
+heldout_genera,0,biological,gcn,2,biological,kmeans,ok,0.157323,0.102276,28,1,6439,24,"trained on Kraken calls, not the pre-generation sim taxid; this arm is not run anymore"
 heldout_genera,0,joint,joint,2,standard,kmeans,ok,0.209970,0.153306,9,1,6439,24,
 heldout_genera,0,edge_flip,gcn,2,standard,kmeans,ok,0.429259,-0.000496,13,1,6439,24,
 heldout_genera,1,gcn,gcn,2,standard,kmeans,ok,0.155925,0.033763,19,1,6439,24,
@@ -44,7 +44,7 @@ heldout_genera,1,gcn_layers3,gcn,3,standard,kmeans,ok,0.192111,0.058610,10,1,643
 heldout_genera,1,transformer,transformer,1,standard,kmeans,ok,0.275509,0.098464,13,1,6439,24,
 heldout_genera,1,proxy,gcn,2,proxy,kmeans,ok,0.155925,0.033763,19,1,6439,24,
 heldout_genera,1,contrastive,gcn,2,contrastive,kmeans,ok,0.156391,0.066530,9,1,6439,24,
-heldout_genera,1,biological,gcn,2,biological,kmeans,ok,0.135425,0.077773,60,0,6439,24,
+heldout_genera,1,biological,gcn,2,biological,kmeans,ok,0.135425,0.077773,60,0,6439,24,"trained on Kraken calls, not the pre-generation sim taxid; this arm is not run anymore"
 heldout_genera,1,joint,joint,2,standard,kmeans,ok,0.176580,0.110431,20,1,6439,24,
 heldout_genera,1,edge_flip,gcn,2,standard,kmeans,ok,0.429259,-0.000496,21,1,6439,24,
 low75half,0,gcn,gcn,2,standard,kmeans,ok,0.359311,0.283316,50,1,4119,296,
@@ -56,7 +56,7 @@ low75half,0,gcn_layers3,gcn,3,standard,kmeans,ok,0.338674,0.316574,32,1,4119,296
 low75half,0,transformer,transformer,1,standard,kmeans,ok,0.240107,0.164522,19,1,4119,296,
 low75half,0,proxy,gcn,2,proxy,kmeans,ok,0.359311,0.283316,50,1,4119,296,
 low75half,0,contrastive,gcn,2,contrastive,kmeans,ok,0.185239,0.146444,60,0,4119,296,
-low75half,0,biological,gcn,2,biological,kmeans,ok,0.261714,0.184848,15,1,4119,296,
+low75half,0,biological,gcn,2,biological,kmeans,ok,0.261714,0.184848,15,1,4119,296,"trained on Kraken calls, not the pre-generation sim taxid; this arm is not run anymore"
 low75half,0,joint,joint,2,standard,kmeans,ok,0.310027,0.213421,40,1,4119,296,
 low75half,0,edge_flip,gcn,2,standard,kmeans,ok,0.479000,0.006254,27,1,4119,296,
 low75half,1,gcn,gcn,2,standard,kmeans,ok,0.220927,0.186237,16,1,4119,296,
@@ -68,7 +68,7 @@ low75half,1,gcn_layers3,gcn,3,standard,kmeans,ok,0.280893,0.227907,20,1,4119,296
 low75half,1,transformer,transformer,1,standard,kmeans,ok,0.317796,0.220323,17,1,4119,296,
 low75half,1,proxy,gcn,2,proxy,kmeans,ok,0.220927,0.186237,16,1,4119,296,
 low75half,1,contrastive,gcn,2,contrastive,kmeans,ok,0.233309,0.175087,60,0,4119,296,
-low75half,1,biological,gcn,2,biological,kmeans,ok,0.375334,0.252316,29,1,4119,296,
+low75half,1,biological,gcn,2,biological,kmeans,ok,0.375334,0.252316,29,1,4119,296,"trained on Kraken calls, not the pre-generation sim taxid; this arm is not run anymore"
 low75half,1,joint,joint,2,standard,kmeans,ok,0.327264,0.225997,13,1,4119,296,
 low75half,1,edge_flip,gcn,2,standard,kmeans,ok,0.478757,0.007334,44,1,4119,296,
 half100half,0,gcn,gcn,2,standard,kmeans,ok,0.174566,0.142568,9,1,2532,0,
@@ -80,7 +80,7 @@ half100half,0,gcn_layers3,gcn,3,standard,kmeans,ok,0.173776,0.148867,9,1,2532,0,
 half100half,0,transformer,transformer,1,standard,kmeans,ok,0.225118,0.178595,9,1,2532,0,
 half100half,0,proxy,gcn,2,proxy,kmeans,ok,0.174566,0.142568,9,1,2532,0,
 half100half,0,contrastive,gcn,2,contrastive,kmeans,ok,0.174566,0.142568,9,1,2532,0,
-half100half,0,biological,gcn,2,biological,kmeans,ok,0.140205,0.119411,26,1,2532,0,
+half100half,0,biological,gcn,2,biological,kmeans,ok,0.140205,0.119411,26,1,2532,0,"trained on Kraken calls, not the pre-generation sim taxid; this arm is not run anymore"
 half100half,0,joint,joint,2,standard,kmeans,ok,0.178120,0.148726,9,1,2532,0,
 half100half,0,edge_flip,gcn,2,standard,kmeans,missing,,,,,2532,0,"the assembly graph has 0 edges, so the line graph has no nodes"
 half100half,1,gcn,gcn,2,standard,kmeans,ok,0.241311,0.189083,9,1,2532,0,
@@ -92,6 +92,6 @@ half100half,1,gcn_layers3,gcn,3,standard,kmeans,ok,0.282385,0.185941,9,1,2532,0,
 half100half,1,transformer,transformer,1,standard,kmeans,ok,0.279621,0.228863,9,1,2532,0,
 half100half,1,proxy,gcn,2,proxy,kmeans,ok,0.241311,0.189083,9,1,2532,0,
 half100half,1,contrastive,gcn,2,contrastive,kmeans,ok,0.241311,0.189083,9,1,2532,0,
-half100half,1,biological,gcn,2,biological,kmeans,ok,0.158373,0.142391,60,0,2532,0,
+half100half,1,biological,gcn,2,biological,kmeans,ok,0.158373,0.142391,60,0,2532,0,"trained on Kraken calls, not the pre-generation sim taxid; this arm is not run anymore"
 half100half,1,joint,joint,2,standard,kmeans,ok,0.220379,0.164696,9,1,2532,0,
 half100half,1,edge_flip,gcn,2,standard,kmeans,missing,,,,,2532,0,"the assembly graph has 0 edges, so the line graph has no nodes"

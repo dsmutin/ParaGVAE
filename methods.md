@@ -17,11 +17,13 @@ Contig F1 matches clusters to genomes by overlap. ARI is computed on labels at l
 | transformer | global attention, residual, one GCN block | 0.516 | 0.280 | 0.279 | 0.252 |
 | proxy | marker weight 2 on top of edge BCE | 0.523 | 0.172 | 0.290 | 0.208 |
 | contrastive | InfoNCE against 8 negatives | 0.516 | 0.145 | 0.209 | 0.208 |
-| biological | edge BCE plus Kraken taxonomy consistency and abundance R² | — | 0.146 | 0.319 | 0.149 |
+| biological | edge BCE plus Kraken taxonomy consistency and abundance R². Kraken is a prediction, so this arm is not a valid use of the pre-generation taxid and is not trained anymore | — | 0.146 | 0.319 | 0.149 |
 | joint | linear VAE whose sample is the GCN input; embedding is the concatenation | 0.570 | 0.193 | 0.319 | 0.199 |
 | edge_flip | line graph, then the 2-layer GCN, pooled back to nodes | 0.411 | 0.429 | 0.479 | — |
 
-`phage_x10` has no Kraken call table, so the biological arm is `status=missing`. `half100half` stores 0 edges, so the line graph has no nodes and `edge_flip` is `status=missing`.
+`phage_x10` has no Kraken call table. The biological numbers on the three assemblies were fit to Kraken calls, not to the sim `tax_id`, and that arm is not trained under the label-provenance rule. `half100half` stores 0 edges, so the line graph has no nodes and `edge_flip` is `status=missing`.
+
+The completion trainer does not read colours. Assembly node features are length, GC, and out-degree. The phage tensor feature is `out_degree`. Edge weights are the first edge-feature column when that matrix has a column; the phage matrix has width 0, so those edges are unweighted. The CDBG on disk is coloured by taxon name; that palette is dropped before the tensor is validated and is not a GCN input. The scored id for the three assemblies is `tax_id` on the `sim` row of `accessions.tsv`. A contig gets that id when the alignment target is the simulated accession. Phage labels are the designed phage classes stored on the CGT, and the two phage colours are sample ids.
 
 These four graphs have no single-copy marker pairs. `proxy` is then the same loss as `gcn`, and the F1 values match. `half100half` also has no edges, so every message-passing arm there is a function of the node features alone. The VAMB score of 0.769 on that graph is the medoid clustering of that feature embedding, not a message that crossed an edge. `heldout_genera` has 24 stored edges on 6439 nodes, so a high `edge_flip` F1 there is not evidence of long-range message passing.
 

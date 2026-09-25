@@ -1,5 +1,5 @@
 # External data. The repository does not vendor assemblies.
-metametro_src: /mnt/tank/scratch/dsmutin/tools/my/metametro/src
+# MetaMetro itself is the installed package (version 0.12.0), not a path.
 vaegbin_data: /mnt/tank/scratch/dsmutin/partition-metagenomics/vaegbin/data
 bundles:
   strong100: strong100
@@ -18,7 +18,7 @@ patience: 8
 lr: 0.05
 # Completion graphs. These paths are machine-local and are not vendored.
 completion:
-  phage_x10: /mnt/tank/scratch/dsmutin/tools/my/metametro/data/work/phage_x10
+  phage_x10: phage_x10
   heldout_genera: /mnt/tank/scratch/partition-metagenomics/smuteam/vaegbin_improved/examples/heldout_genera
   low75half: /mnt/tank/scratch/partition-metagenomics/smuteam/vaegbin_improved/examples/low75half
   half100half: /mnt/tank/scratch/partition-metagenomics/smuteam/vaegbin_improved/examples/half100half

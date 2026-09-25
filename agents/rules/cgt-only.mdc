@@ -1,0 +1,12 @@
+---
+description: Train only on a MetaMetro CGT. MetaMetro 0.12.0 is a required dependency.
+alwaysApply: true
+---
+
+# Coloured graph tensor only
+
+MetaMetro 0.12.0 is an obligatory dependency. Do not hard-code a filesystem path to that checkout.
+
+The model input is a MetaMetro coloured graph tensor (`Cgt`). Do not train on a raw adjacency, a FASTG, a GFA, or a hand-built CSR that bypasses that tensor.
+
+If the data is not yet a tensor, run MetaMetro (`load_cgt`, `cdbg_to_cgt`, `cfa_to_cdbg`, or `cgt_from_csr`) and then use the tensor. Do not reimplement those converters.

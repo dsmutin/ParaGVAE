@@ -11,6 +11,7 @@ from sklearn.metrics import adjusted_rand_score
 
 from paragvae.amber import score_bins
 from paragvae.graphs import StudyGraph, composition_colors
+from paragvae.metametro_path import training_arrays
 from paragvae.native import train_gcn_native
 from paragvae.score import cluster_embedding, contig_f1
 from paragvae.train import knn_adjacency
@@ -115,12 +116,8 @@ def assembly_edge_weight(graph: StudyGraph, arm: Arm, indptr: np.ndarray) -> np.
     """
     if arm.graph != "assembly":
         return None
-    stored = np.asarray(graph.cgt.edge_features, dtype=np.float32)
-    column = stored.reshape(-1) if stored.ndim == 1 else np.asarray(stored[:, 0], dtype=np.float32)
-    expected = int(indptr[-1]) if len(indptr) else 0
-    if column.shape[0] != expected:
-        raise ValueError(f"{graph.name}: edge weight length {column.shape[0]} does not match {expected} CSR entries")
-    return column
+    _features, _indptr, _indices, weight = training_arrays(graph.cgt)
+    return weight
 
 
 def _features(graph: StudyGraph, arm: Arm, indptr: np.ndarray, indices: np.ndarray) -> np.ndarray:

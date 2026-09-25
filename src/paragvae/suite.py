@@ -23,7 +23,7 @@ def load_config(path: Path | None = None) -> dict:
 def load_graphs(config: dict | None = None) -> list[StudyGraph]:
     """Bubble fixture plus the VAEGbin bundles named in the config."""
     config = config or load_config()
-    ensure_metametro(config["metametro_src"])
+    ensure_metametro()
     graphs = [load_metametro_bubble()]
     root = Path(config["vaegbin_data"])
     gold_paths = config.get("gold") or {}

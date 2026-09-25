@@ -32,17 +32,6 @@ class StudyGraph:
     gold: dict[str, tuple[str, int]] | None = None
 
 
-def _cgt_class():
-    ensure_metametro()
-    from metametro.formats.cgt.model import Cgt
-
-    return Cgt
-
-
-def _empty_colors(n_rows: int, width: int = 0) -> np.ndarray:
-    return np.zeros((n_rows, width), dtype=np.uint8)
-
-
 def cgt_from_csr(
     *,
     name: str,
@@ -54,8 +43,14 @@ def cgt_from_csr(
     node_colors: np.ndarray | None = None,
     source: str,
 ) -> object:
-    """Validate and return a CGT. Does not allocate a dense adjacency."""
-    Cgt = _cgt_class()
+    """Build a CGT with MetaMetro's external-CSR contract.
+
+    A missing edge weight stays width 0. MetaMetro does not invent ones.
+    Colour weights are left unset: this loader has no float colour scores.
+    """
+    ensure_metametro()
+    from metametro import cgt_from_csr as build_cgt
+
     matrix = sparse.csr_matrix(adjacency)
     matrix.sum_duplicates()
     matrix.sort_indices()
@@ -66,49 +61,27 @@ def cgt_from_csr(
     if features.ndim != 2:
         raise ValueError("node features must be 2-d")
     if edge_weight is None:
-        weights = np.ones(matrix.nnz, dtype=np.float32)
+        edges = None
     else:
-        weights = np.asarray(edge_weight, dtype=np.float32).reshape(-1)
-        if weights.shape != (matrix.nnz,):
-            raise ValueError(f"edge weight length {weights.shape[0]} does not match {matrix.nnz} edges")
-    colors = _empty_colors(n) if node_colors is None else np.asarray(node_colors, dtype=np.uint8)
-    if colors.shape[0] != n:
+        edges = np.asarray(edge_weight, dtype=np.float32).reshape(-1, 1)
+        if edges.shape[0] != matrix.nnz:
+            raise ValueError(f"edge weight length {edges.shape[0]} does not match {matrix.nnz} edges")
+    colors = None if node_colors is None else np.asarray(node_colors, dtype=np.uint8)
+    if colors is not None and colors.shape[0] != n:
         raise ValueError("node colour rows must match the node count")
     feature_names = [f"f{i}" for i in range(features.shape[1])]
-    metadata = {
-        "schema_version": "1.0",
-        "num_nodes": n,
-        "num_edges": int(matrix.nnz),
-        "node_feature_names": feature_names,
-        "edge_feature_names": ["weight"],
-        "node_feature_dtype": "float32",
-        "edge_feature_dtype": "float32",
-        "topology": "csr",
-        "contract": "cdbg_to_cgt",
-        "contract_version": "1.0",
-        "source": {"format": "vaegbin_bundle", "graph_id": name, "note": source},
-    }
-    mapping = [
-        {"dense_id": i, "source_id": node_ids[i], "cfa_node_ids": [node_ids[i]]}
-        for i in range(n)
-    ]
-    graph = Cgt(
-        metadata=metadata,
+    return build_cgt(
+        graph_id=name,
         indptr=np.asarray(matrix.indptr, dtype=np.int64),
         indices=np.asarray(matrix.indices, dtype=np.int64),
         node_features=features,
-        edge_features=weights.reshape(-1, 1),
+        source_ids=node_ids,
+        node_feature_names=feature_names,
+        edge_features=edges,
         node_colors=colors,
-        edge_colors=_empty_colors(int(matrix.nnz)),
-        mapping=mapping,
         node_labels=np.asarray(labels, dtype=np.int64),
-        edge_labels=None,
-        color_ids=list(range(colors.shape[1])),
+        source=source,
     )
-    from metametro.formats.cgt.validator import validate_cgt
-
-    validate_cgt(graph)
-    return graph
 
 
 def _label_vector(path: Path, node_ids: list[str]) -> np.ndarray:

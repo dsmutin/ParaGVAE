@@ -40,7 +40,9 @@ def write_provenance(dest: Path, hypothesis: str, config: dict) -> None:
     compiler_bin = os.environ.get("CXX") or "g++"
     compiler = subprocess.run([compiler_bin, "--version"], capture_output=True, text=True)
     compiler_line = compiler.stdout.splitlines()[0] if compiler.returncode == 0 and compiler.stdout else "g++ not found"
-    metametro = Path(config["metametro_src"])
+    from paragvae.metametro_path import REQUIRED_METAMETRO, ensure_metametro, metametro_root
+
+    ensure_metametro()
     lines = [
         f"hypothesis: {hypothesis}",
         f"command: python research/run_hypothesis.py {hypothesis}",
@@ -52,8 +54,8 @@ def write_provenance(dest: Path, hypothesis: str, config: dict) -> None:
         f"max_epochs: {config['max_epochs']}",
         f"patience: {config['patience']}",
         f"lr: {config['lr']}",
-        f"metametro_src: {metametro}",
-        f"metametro_commit: {_git_head(metametro.parent)}",
+        f"metametro_version: {REQUIRED_METAMETRO}",
+        f"metametro_commit: {_git_head(metametro_root())}",
         f"paragvae_commit: {_git_head(ROOT)}",
         f"vaegbin_data: {config['vaegbin_data']}",
     ]

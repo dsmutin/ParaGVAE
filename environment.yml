@@ -1,3 +1,5 @@
+# metametro==0.12.0 must be installed in this environment. It is not a conda package.
+# Install that checkout into the env; do not hard-code its path in this repo.
 name: paragvae
 channels:
   - conda-forge

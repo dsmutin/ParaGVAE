@@ -28,7 +28,13 @@ def completion_paths(config: dict) -> dict[str, Path]:
     missing = [name for name in required if not block.get(name)]
     if missing:
         raise ValueError(f"completion paths are missing: {', '.join(missing)}")
-    return {name: Path(block[name]) for name in required}
+    from paragvae.metametro_path import work_dir
+
+    resolved = {}
+    for name in required:
+        raw = Path(block[name])
+        resolved[name] = raw if raw.is_absolute() else work_dir(str(raw))
+    return resolved
 
 
 # Each example's ``run_example.py`` points at a different NCBI assembly report.
@@ -49,17 +55,17 @@ def _assembly_report(name: str, example: Path) -> Path:
     return path
 
 
-def load_completion(name: str, path: Path, metametro_src: str | Path) -> tuple[StudyGraph, BioTargets | None]:
+def load_completion(name: str, path: Path) -> tuple[StudyGraph, BioTargets | None]:
     """Load one completion graph and its Kraken targets, if that file exists."""
     if name == "phage_x10":
-        return _phage(path, metametro_src), None
+        return _phage(path), None
     report = _assembly_report(name, path)
-    graph = load_heldout_graph(path, metametro_src, report=report)
+    graph = load_heldout_graph(path, report=report)
     calls = path / "work" / "reprofile" / "kraken_calls.tsv"
     counts = path / "work" / "reprofile" / "kraken_counts.tsv"
     if not calls.is_file() or not counts.is_file():
         return graph, None
-    ensure_metametro(metametro_src)
+    ensure_metametro()
     from metametro.formats.cdbg.io import load_cdbg
 
     unitigs = sorted(load_cdbg(cdbg_dir(path)).unitigs, key=lambda unitig: unitig.unitig_id)
@@ -70,13 +76,13 @@ def load_completion(name: str, path: Path, metametro_src: str | Path) -> tuple[S
     return graph, load_kraken_targets(calls, counts, members, lengths)
 
 
-def _phage(path: Path, metametro_src: str | Path) -> StudyGraph:
+def _phage(path: Path) -> StudyGraph:
     folder = Path(path) / "cgt"
     required = ("indptr.npy", "indices.npy", "node_features.npy", "node_labels.npy", "edge_features.npy")
     missing = [name for name in required if not (folder / name).is_file()]
     if missing:
         raise FileNotFoundError(f"phage CGT is missing {', '.join(missing)} under {folder}")
-    ensure_metametro(metametro_src)
+    ensure_metametro()
     from metametro.formats.cgt.io import load_cgt
 
     cgt = load_cgt(folder)

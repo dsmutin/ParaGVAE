@@ -1,0 +1,18 @@
+---
+description: Evaluation taxids come from the pre-generation read table and must not enter the GCN or its colours.
+alwaysApply: true
+---
+
+# Label provenance
+
+For a simulated metagenome, the evaluation id is the `tax_id` on the `sim` row of the accession table. That value is fixed before reads are generated.
+
+Do not score Kraken, Kaiju, CheckM, k-means colours, mock labels, or any other prediction as that id. A contig may receive the sim taxid only when it is tied to that simulated accession.
+
+Do not put that taxid into the graph the GCN trains on. Forbidden carriers:
+
+- node or edge features
+- edge weights
+- node or edge colours, including a taxon palette copied from the CDBG
+
+The id may be stored only as the evaluation vector used after training. A training loss that takes the evaluation taxid, or a call that emits it, is the same leak.

@@ -1,23 +1,17 @@
 # MetaMetro data structures
 
-ParaGVAE does not invent a second graph schema.
+ParaGVAE does not invent a second graph schema. MetaMetro 0.12.0 is a required installed package. Source code does not store a path to that checkout.
 
-| Brief name | MetaMetro object | Role |
-|---|---|---|
-| Colouring step (called TCA in the project brief) | CFA colour dictionary, then `Cgt.node_colors` / `Cgt.edge_colors` (`uint8`) | Discrete colours only |
-| Training tensor | CGT (`indptr`, `indices`, `node_features`, `edge_features`) | The GCN reads this and nothing else |
+Training reads a coloured graph tensor (`Cgt`) and nothing assembled beside it. When a CFA, CDBG, or FASTG has to become a tensor, the call is a MetaMetro converter (`cdbg_to_cgt`, `cfa_to_cdbg`, `cgt_from_csr`, `load_cgt`).
 
-Genome labels sit on `Cgt.node_labels` for scoring. They are not features, colours, or loss targets.
+| Field | Role |
+|---|---|
+| `indptr`, `indices` | CSR topology |
+| `node_features`, `edge_features` | Model inputs. A width-0 edge matrix means unweighted edges. Weights are not invented. |
+| `node_colors`, `edge_colors` | `uint8` colour mask |
+| `node_color_weights`, `edge_color_weights` | Optional `float32` scores on those same colour columns. They are not features. |
+| `node_labels`, `edge_labels` | Evaluation ids. Not features, colours, or the default loss. |
 
-## Schema gap (no code change)
+Schema version on the tensor is still `1.0`. Colour probabilities are the optional weight arrays, not a second mask.
 
-CGT schema 1.0 stores colours as a `uint8` presence matrix, not as probabilities. Kraken probability vectors from the May 2026 runs do not fit that column. This reproduction therefore uses:
-
-- MetaMetro bubble: sample colours already written by `cdbg_to_cgt`
-- VAEGbin bundles: an 8-way k-means of k-mer composition, stored only in the colouring arm as extra channels
-
-No MetaMetro source file was edited. A later schema can add an optional `float32` colour channel if probabilistic colours need to live beside the `uint8` mask.
-
-## Loader
-
-`paragvae.graphs.cgt_from_csr` builds a CGT from a VAEGbin CSR bundle and calls `validate_cgt`. Assembly topology stays sparse. The training code never allocates a dense `N×N` parameter matrix; the normalized operator is a SciPy CSR matrix. Assembly runs use `edge_features` as the edge weight. A weight vector whose length is not the CSR nnz is an error.
+`paragvae.graphs.cgt_from_csr` is a thin call to MetaMetro's external-CSR contract. VAEGbin bundles enter through that function. The hypothesis runner then trains on the resulting `Cgt`.

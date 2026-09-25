@@ -25,7 +25,6 @@ def cdbg_dir(example: Path) -> Path:
 
 def load_heldout_graph(
     example: str | Path,
-    metametro_src: str | Path | None = None,
     report: str | Path | None = None,
 ) -> StudyGraph:
     """Load ``example`` (held-out genera or half strains).
@@ -43,7 +42,7 @@ def load_heldout_graph(
     for path in (report, paf):
         if not path.is_file():
             raise FileNotFoundError(f"required held-out file is missing: {path}")
-    ensure_metametro(metametro_src)
+    ensure_metametro()
     from metametro.converters.cdbg_to_cgt import cdbg_to_cgt
     from metametro.formats.cdbg.io import load_cdbg
     from metametro.formats.cgt.validator import validate_cgt
@@ -54,12 +53,17 @@ def load_heldout_graph(
         raise ValueError(f"{folder} has no unitigs")
     features = _node_features(cdbg, unitigs)
     labels = _species_labels(root, unitigs, paf, report)
+    # Colours on the CDBG are taxon names. Node labels are the evaluation
+    # taxids. Neither is copied onto the tensor the trainer reads.
     graph = cdbg_to_cgt(
         cdbg,
         node_features=features,
         node_feature_names=["length", "gc", "out_degree"],
-        node_labels=labels,
     )
+    graph.node_colors = np.zeros((features.shape[0], 0), dtype=np.uint8)
+    graph.edge_colors = np.zeros((graph.num_edges, 0), dtype=np.uint8)
+    graph.color_ids = []
+    graph.node_labels = None
     validate_cgt(graph)
     return StudyGraph(
         name=root.name,
@@ -147,13 +151,26 @@ def _best_hits(paf: Path) -> dict[str, str]:
 
 
 def _species_labels(example: Path, unitigs: list, paf: Path, report: Path) -> np.ndarray:
-    """Join PAF query ids to unitigs. Stop when fewer than 90% of nodes join."""
-    species_of = _species_by_accession(report)
+    """Join contigs to the taxid stored on the simulated genome.
+
+    The integer is ``tax_id`` from the example accession table (``role=sim``),
+    the id fixed before read generation. A contig receives it only when its
+    PAF hit is that simulated accession. The NCBI report is used only as a
+    check that it names the same integer. Kraken ids are not read.
+    """
+    table = example / "accessions.tsv"
+    from paragvae.provenance_checks import simulation_tax_ids
+
+    species_of = simulation_tax_ids(table)
+    reported = _species_by_accession(report)
+    for key, tax in species_of.items():
+        if key in reported and reported[key] != tax:
+            raise ValueError(f"{key} sim tax_id {tax} disagrees with the assembly report {reported[key]}")
     hits = _best_hits(paf)
     query_species: dict[str, int] = {}
     unknown_targets: set[str] = set()
     for query, target in hits.items():
-        species = species_of.get(target)
+        species = species_of.get(target.split(".", 1)[0])
         if species is None:
             unknown_targets.add(target)
             continue

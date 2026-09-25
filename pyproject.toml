@@ -9,6 +9,7 @@ description = "Graph VAE binning on MetaMetro coloured graph tensors"
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.12"
+dependencies = ["metametro==0.12.0"]
 
 [project.scripts]
 paragvae = "paragvae.cli:main"

@@ -22,7 +22,6 @@ def test_provenance_records_config(tmp_path: Path) -> None:
         "max_epochs": 60,
         "patience": 8,
         "lr": 0.05,
-        "metametro_src": "/mnt/tank/scratch/dsmutin/tools/my/metametro/src",
         "vaegbin_data": "/data",
     }
     write_provenance(tmp_path, "loss", config)
@@ -30,4 +29,5 @@ def test_provenance_records_config(tmp_path: Path) -> None:
     assert "lr: 0.05" in text
     assert "command: python research/run_hypothesis.py loss" in text
     assert "numpy:" in text
+    assert "metametro_version: 0.12.0" in text
     assert "metametro_commit:" in text
