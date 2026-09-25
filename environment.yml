@@ -17,5 +17,6 @@ dependencies:
   - vl-convert-python=2.0.0rc7
   - gxx_linux-64=16.2.0
   - cami-amber=2.0.7
+  - hdbscan=0.8.44
 variables:
   PYTHONPATH: src

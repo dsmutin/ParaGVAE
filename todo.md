@@ -9,3 +9,4 @@ Scaffold checklist. Check a box only after mandatory tests pass.
 - [x] Decaying label leakage from an observed-node mask
 - [x] SSL plan plus supervised class-weighted GCN
 - [x] Coloured-graph node and multi-label edge heads (version 0.3.0)
+- [x] GraphSAGE, GAT, 3-layer GCN, GCN-Transformer, joint VAE-GCN, biological loss, VAMB and HDBSCAN (version 0.4.0)
