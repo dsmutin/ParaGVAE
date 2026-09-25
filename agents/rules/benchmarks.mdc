@@ -1,0 +1,16 @@
+---
+description: Benchmarks are generated in MetaMetro, without hardcoded paths, mocks, or target leakage
+alwaysApply: true
+---
+
+# Benchmarks
+
+Do not add a new benchmark in this repository. Add it in MetaMetro with `metametro benchbuild` and open a pull request there.
+
+Do not hard-code machine paths. Read a MetaMetro bench directory, a CLI argument, or an environment variable. If the path is missing, stop.
+
+Do not mock a benchmark graph, a taxonomy label, or a metric. A graph that exists only inside a test file stays there.
+
+Do not write the evaluation target into features, colours, or another model input. Ground truth is a score label only.
+
+Strong100 and the prebuilt ONT and Illumina bundles are not generators to port.

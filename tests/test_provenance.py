@@ -29,5 +29,5 @@ def test_provenance_records_config(tmp_path: Path) -> None:
     assert "lr: 0.05" in text
     assert "command: python research/run_hypothesis.py loss" in text
     assert "numpy:" in text
-    assert "metametro_version: 0.12.0" in text
+    assert "metametro_version: 0.15.0" in text
     assert "metametro_commit:" in text

@@ -1,24 +1,26 @@
 # External data. The repository does not vendor assemblies.
-# MetaMetro itself is the installed package (version 0.12.0), not a path.
-vaegbin_data: /mnt/tank/scratch/dsmutin/partition-metagenomics/vaegbin/data
+# MetaMetro itself is the installed package, not a path.
+# Prebuilt VAEGbin bundles (Strong100 and the ONT/Illumina CSR dumps) are not
+# MetaMetro benchmarks. Set VAEGBIN_DATA to their root. Gold tables are paths
+# in this file or the matching VAEGBIN_GOLD_<NAME> variable.
+vaegbin_data: ""
 bundles:
   strong100: strong100
   ont100m: samovar10_ont100m_gfa
   ont1b: samovar10_ont1b_gfa
   illumina: samovar10_illumina_100m
-# CAMI gold, or a CSV with contig_id, genome_id, and length. Lengths are not invented.
 gold:
-  strong100: /mnt/tank/scratch/dsmutin/partition-metagenomics/vaegbin/data/strong100/gold_standard_genome.tsv
-  ont100m: /mnt/tank/scratch/dsmutin/archive/bioinformatics/2026/AIRI_may/clean/data/regenerated_data/ont_100m/assembly/ground_truth.csv
-  ont1b: /mnt/tank/scratch/dsmutin/archive/bioinformatics/2026/AIRI_may/clean/data/regenerated_data/ont_1b/assembly/ground_truth.csv
-  illumina: /mnt/tank/scratch/dsmutin/archive/bioinformatics/2026/AIRI_may/clean/data/regenerated_data/illumina_100m/assembly/ground_truth.csv
+  strong100: ""
+  ont100m: ""
+  ont1b: ""
+  illumina: ""
 seeds: [0, 1]
 max_epochs: 60
 patience: 8
 lr: 0.05
 # Completion graphs. These paths are machine-local and are not vendored.
 completion:
-  phage_x10: phage_x10
-  heldout_genera: /mnt/tank/scratch/partition-metagenomics/smuteam/vaegbin_improved/examples/heldout_genera
-  low75half: /mnt/tank/scratch/partition-metagenomics/smuteam/vaegbin_improved/examples/low75half
-  half100half: /mnt/tank/scratch/partition-metagenomics/smuteam/vaegbin_improved/examples/half100half
+  phage_x10: phage_species_5_x10
+  heldout_genera: bacteria_species_20_heldout
+  low75half: 3domain_genus_75_half
+  half100half: 4domain_family_100_half

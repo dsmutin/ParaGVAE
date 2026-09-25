@@ -19,8 +19,16 @@ JOIN_FRACTION = 0.9
 
 
 def cdbg_dir(example: Path) -> Path:
-    """Return the CDBG directory for one held-out example."""
-    return Path(example) / "work" / "reprofile" / "tocumg" / "cdbg"
+    """Return the CDBG directory for one held-out example.
+
+    A MetaMetro benchbuild writes ``cdbg/`` at the top of the build. Older
+    exports keep it under ``work/reprofile/tocumg/cdbg``.
+    """
+    root = Path(example)
+    direct = root / "cdbg"
+    if (direct / "metadata.yaml").is_file():
+        return direct
+    return root / "work" / "reprofile" / "tocumg" / "cdbg"
 
 
 def load_heldout_graph(

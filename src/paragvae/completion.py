@@ -20,7 +20,12 @@ from paragvae.metametro_path import ensure_metametro
 
 
 def completion_paths(config: dict) -> dict[str, Path]:
-    """Absolute paths of the four completion graphs from the dataset config."""
+    """Resolve the four completion graphs.
+
+    A value that is a MetaMetro benchmark name (or a legacy alias) points at
+    that benchbuild directory. Any other value is a path, absolute or relative
+    to the MetaMetro work directory.
+    """
     block = config.get("completion")
     if not isinstance(block, dict):
         raise ValueError("configs/datasets.yaml is missing the completion paths")
@@ -28,12 +33,22 @@ def completion_paths(config: dict) -> dict[str, Path]:
     missing = [name for name in required if not block.get(name)]
     if missing:
         raise ValueError(f"completion paths are missing: {', '.join(missing)}")
-    from paragvae.metametro_path import work_dir
+    from paragvae.metametro_path import ensure_metametro, work_dir
+
+    ensure_metametro()
+    from metametro.bench.paths import default_outdir
+    from metametro.bench.registry import resolve
+    from metametro.errors import ContractError
 
     resolved = {}
     for name in required:
-        raw = Path(block[name])
-        resolved[name] = raw if raw.is_absolute() else work_dir(str(raw))
+        raw = str(block[name])
+        try:
+            resolved[name] = default_outdir(resolve(raw))
+            continue
+        except ContractError:
+            path = Path(raw)
+            resolved[name] = path if path.is_absolute() else work_dir(raw)
     return resolved
 
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import yaml
@@ -20,18 +21,28 @@ def load_config(path: Path | None = None) -> dict:
     return yaml.safe_load(chosen.read_text(encoding="utf-8"))
 
 
+def _configured_path(value: object, env_name: str) -> Path:
+    """Return a path from the config or from ``env_name``. An empty value is an error."""
+    text = "" if value is None else str(value).strip()
+    if not text:
+        text = os.environ.get(env_name, "").strip()
+    if not text:
+        raise ValueError(f"set {env_name}; a machine path is not stored in this repository")
+    return Path(text)
+
+
 def load_graphs(config: dict | None = None) -> list[StudyGraph]:
     """Bubble fixture plus the VAEGbin bundles named in the config."""
     config = config or load_config()
     ensure_metametro()
     graphs = [load_metametro_bubble()]
-    root = Path(config["vaegbin_data"])
+    root = _configured_path(config.get("vaegbin_data"), "VAEGBIN_DATA")
     gold_paths = config.get("gold") or {}
     for name, folder in config["bundles"].items():
         graph = load_vaegbin_bundle(root / folder, name=name)
         if name not in gold_paths:
             raise ValueError(f"configs/datasets.yaml has no gold path for {name}")
-        gold_path = Path(gold_paths[name])
+        gold_path = _configured_path(gold_paths[name], f"VAEGBIN_GOLD_{name.upper()}")
         if not gold_path.is_file():
             raise ValueError(f"{name} gold standard is missing: {gold_path}")
         graph.gold = load_gold(gold_path)
