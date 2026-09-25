@@ -31,8 +31,7 @@ def load_heldout_graph(
     """Load ``example`` (held-out genera or half strains).
 
     Raises ``FileNotFoundError`` when the CDBG directory is missing. A
-    synthetic CFA/CDBG is not built here. Species ids are
-    ``checkmSpeciesTaxId`` values already stored in the example assembly
+    synthetic CFA/CDBG is not built here.     Species ids are ``organism.taxId`` values already stored in the assembly
     report. This function does not walk an NCBI taxdump.
     """
     root = Path(example)
@@ -101,7 +100,11 @@ def _node_features(cdbg: object, unitigs: list) -> np.ndarray:
 
 
 def _species_by_accession(report: Path) -> dict[str, int]:
-    """Map a versionless accession to the species id stored on that report row."""
+    """Map a versionless accession to ``organism.taxId``.
+
+    That is the species id used by ``examples/heldout_genera/run_example.py``.
+    ``checkmSpeciesTaxId`` is a different field and is not the label.
+    """
     found: dict[str, int] = {}
     for line in report.read_text(encoding="utf-8").splitlines():
         if not line.strip():
@@ -110,9 +113,10 @@ def _species_by_accession(report: Path) -> dict[str, int]:
         accession = str(record.get("accession") or record.get("currentAccession") or "")
         if not accession or "." not in accession:
             raise ValueError(f"assembly report row has no versioned accession: {accession!r}")
-        species = (record.get("checkmInfo") or {}).get("checkmSpeciesTaxId")
+        organism = record.get("organism") or {}
+        species = organism.get("taxId", organism.get("tax_id"))
         if species in (None, ""):
-            raise ValueError(f"{accession} has no checkmSpeciesTaxId in {report}")
+            raise ValueError(f"{accession} has no organism.taxId in {report}")
         key = accession.split(".", 1)[0]
         code = int(species)
         if key in found and found[key] != code:
