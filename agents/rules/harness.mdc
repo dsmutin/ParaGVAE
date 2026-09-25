@@ -18,6 +18,7 @@ alwaysApply: true
 - no-push
 - follow-contributing
 - label-provenance
+- colourings
 - benchmarks
 - cgt-only
 

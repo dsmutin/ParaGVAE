@@ -212,17 +212,8 @@ def load_metametro_bubble() -> StudyGraph:
 def composition_colors(features: np.ndarray, n_colors: int = 8, seed: int = 0) -> np.ndarray:
     """Discrete composition colours. Fit ignores genome labels.
 
-    Returns a uint8 one-hot matrix suitable for ``Cgt.node_colors``.
+    Implemented by MetaMetro k-means. Returns a uint8 one-hot matrix.
     """
-    from sklearn.cluster import KMeans
+    from metametro.contracts.composition import kmeans_onehot
 
-    matrix = np.asarray(features, dtype=np.float64)
-    scale = matrix.std(axis=0)
-    scale[scale < 1e-8] = 1.0
-    scaled = (matrix - matrix.mean(axis=0)) / scale
-    n_colors = int(min(n_colors, max(2, scaled.shape[0])))
-    model = KMeans(n_clusters=n_colors, random_state=seed, n_init=5)
-    assigned = model.fit_predict(scaled)
-    colors = np.zeros((scaled.shape[0], n_colors), dtype=np.uint8)
-    colors[np.arange(scaled.shape[0]), assigned] = 1
-    return colors
+    return kmeans_onehot(features, n_clusters=n_colors, seed=seed)

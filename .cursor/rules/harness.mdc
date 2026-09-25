@@ -19,6 +19,7 @@ alwaysApply: true
 - follow-contributing
 - benchmarks
 - label-provenance
+- colourings
 - cgt-only
 
 User-level publication-figures applies when producing plots.

@@ -11,7 +11,7 @@ from pathlib import Path
 
 import numpy as np
 
-REQUIRED_METAMETRO = "0.15.0"
+REQUIRED_METAMETRO = "0.16.0"
 
 
 def ensure_metametro() -> str:
@@ -27,8 +27,10 @@ def ensure_metametro() -> str:
             f"MetaMetro {REQUIRED_METAMETRO} is required. Install that package into this environment."
         ) from exc
     version = str(metametro.__version__)
-    if version != REQUIRED_METAMETRO:
-        raise ImportError(f"MetaMetro {version} is installed; paragvae requires {REQUIRED_METAMETRO}")
+    left = tuple(int(part) for part in version.split(".")[:3])
+    right = tuple(int(part) for part in REQUIRED_METAMETRO.split(".")[:3])
+    if left < right:
+        raise ImportError(f"MetaMetro {version} is installed; paragvae requires {REQUIRED_METAMETRO} or newer")
     return version
 
 
@@ -47,8 +49,11 @@ def metametro_root() -> Path:
             "The installed MetaMetro package has no checkout VERSION beside it. "
             "Install it from the MetaMetro repository so data/work stays available."
         )
-    if (root / "VERSION").read_text(encoding="utf-8").strip() != REQUIRED_METAMETRO:
-        raise ImportError(f"MetaMetro checkout at {root} is not {REQUIRED_METAMETRO}")
+    installed = (root / "VERSION").read_text(encoding="utf-8").strip()
+    left = tuple(int(part) for part in installed.split(".")[:3])
+    right = tuple(int(part) for part in REQUIRED_METAMETRO.split(".")[:3])
+    if left < right:
+        raise ImportError(f"MetaMetro checkout at {root} is {installed}; paragvae requires {REQUIRED_METAMETRO} or newer")
     return root
 
 

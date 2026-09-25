@@ -1,0 +1,14 @@
+---
+description: Colouring methods live in MetaMetro; this tool selects ToCUMG namespaces
+alwaysApply: true
+---
+
+# Colourings
+
+Do not add a new colouring method in this repository. Add it in MetaMetro and open a pull request there.
+
+Do not mock a colouring. Train on colour columns MetaMetro already wrote.
+
+Check that a selected colouring exists on the current ToCUMG or CGT. If it is missing, stop.
+
+Use MetaMetro colourings and `filter_colours` / `load_bench_cgt` to keep the layers an arm needs.
