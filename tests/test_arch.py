@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 from paragvae.arch import train_architecture
+from paragvae.models.candidates import colour_assignment, patch_transformer_gcn
 from paragvae.bioloss import BioTargets, biological_gradient
 from paragvae.cluster_methods import cluster_vamb
 
@@ -27,7 +28,8 @@ def _ring(n: int = 12) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
 
 def test_each_architecture_returns_a_finite_embedding():
     features, indptr, indices, _labels = _ring()
-    for architecture in ("gcn", "sage", "gat", "transformer", "joint"):
+    names = ("gcn", "sage", "gat", "transformer", "joint", "mixhop", "jknet", "gps", "unet", "han", "diffpool")
+    for architecture in names:
         result = train_architecture(
             features=features,
             indptr=indptr,
@@ -77,6 +79,22 @@ def test_biological_gradient_is_finite_and_same_class_step_shrinks_distance():
     before = np.sum((latent[0] - latent[1]) ** 2)
     after = np.sum((stepped[0] - stepped[1]) ** 2)
     assert after < before
+
+
+def test_colour_assignment_and_patch_gcn_run():
+    features, indptr, indices, _labels = _ring()
+    colors = np.eye(features.shape[0], 2, dtype=np.uint8)
+    bins = colour_assignment(colors)
+    assert bins.shape == (features.shape[0],)
+    result = patch_transformer_gcn(
+        features=features,
+        indptr=indptr,
+        indices=indices,
+        max_epochs=2,
+        patience=2,
+        seed=0,
+    )
+    assert np.isfinite(result.embedding).all()
 
 
 def test_vamb_separates_two_opposite_blobs():
