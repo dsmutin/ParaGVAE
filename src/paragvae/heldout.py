@@ -23,7 +23,11 @@ def cdbg_dir(example: Path) -> Path:
     return Path(example) / "work" / "reprofile" / "tocumg" / "cdbg"
 
 
-def load_heldout_graph(example: str | Path, metametro_src: str | Path | None = None) -> StudyGraph:
+def load_heldout_graph(
+    example: str | Path,
+    metametro_src: str | Path | None = None,
+    report: str | Path | None = None,
+) -> StudyGraph:
     """Load ``example`` (held-out genera or half strains).
 
     Raises ``FileNotFoundError`` when the CDBG directory is missing. A
@@ -35,7 +39,7 @@ def load_heldout_graph(example: str | Path, metametro_src: str | Path | None = N
     folder = cdbg_dir(root)
     if not folder.is_dir():
         raise FileNotFoundError(f"CDBG directory is missing: {folder}")
-    report = _assembly_report(root)
+    report = Path(report) if report is not None else _assembly_report(root)
     paf = root / "work" / "reprofile" / "contigs.paf"
     for path in (report, paf):
         if not path.is_file():

@@ -31,11 +31,30 @@ def completion_paths(config: dict) -> dict[str, Path]:
     return {name: Path(block[name]) for name in required}
 
 
+# Each example's ``run_example.py`` points at a different NCBI assembly report.
+_REPORTS = {
+    "heldout_genera": "assembly_data_report.jsonl",
+    "low75half": "low75_assembly_data_report.jsonl",
+    "half100half": "high100_assembly_data_report.jsonl",
+}
+
+
+def _assembly_report(name: str, example: Path) -> Path:
+    filename = _REPORTS.get(name)
+    if filename is None:
+        raise ValueError(f"no assembly report is configured for {name}")
+    path = example.resolve().parents[1] / "data" / "raw" / filename
+    if not path.is_file():
+        raise FileNotFoundError(f"assembly report for {name} is missing: {path}")
+    return path
+
+
 def load_completion(name: str, path: Path, metametro_src: str | Path) -> tuple[StudyGraph, BioTargets | None]:
     """Load one completion graph and its Kraken targets, if that file exists."""
     if name == "phage_x10":
         return _phage(path, metametro_src), None
-    graph = load_heldout_graph(path, metametro_src)
+    report = _assembly_report(name, path)
+    graph = load_heldout_graph(path, metametro_src, report=report)
     calls = path / "work" / "reprofile" / "kraken_calls.tsv"
     counts = path / "work" / "reprofile" / "kraken_counts.tsv"
     if not calls.is_file() or not counts.is_file():
