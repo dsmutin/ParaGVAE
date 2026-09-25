@@ -1,7 +1,7 @@
 name: full tests
 
-# Optional pytest, toy example, and vignettes/examples.
-# Not used on ordinary push/PR (those run required-tests.yml).
+# The toy example is the baseline CLI. It does not load a benchbuild directory.
+# Completion graphs are MetaMetro benches and are not built in this workflow.
 
 on:
   release:
