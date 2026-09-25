@@ -7,15 +7,20 @@ English is required for every public function, class, module, CLI flag, data fil
 ## Architecture
 
 ```
-CLI (paragvae.cli)
-  → baseline pipeline (paragvae.baseline.run_pipeline)
-      → JSON result {status, ok, input_path}
-
-tests/          mandatory vs optional pytest
-examples/toy/   end-to-end run of the current (baseline) tool
-cite/           BibTeX for integrated third-party tools
-agents/         portable rules and skills (any IDE)
+src/paragvae/          the tool
+  models/              encoders, heads, SSL, leakage, line-graph flip, binning candidates
+  ds/                  error analysis (loading and the tables/charts it writes)
+  cli, baseline, graphs, train, study
+tests/                 mandatory vs optional pytest
+examples/toy/          end-to-end run of the baseline CLI
+examples/DS/           thin entry points; the analysis code is src/paragvae/ds
+cite/                  BibTeX for integrated third-party tools
+agents/                portable rules and skills (any IDE)
 ```
+
+New methods and new analysis code go under `src/paragvae/models/` or `src/paragvae/ds/`. Do not add a second package tree or a sibling checkout for a method that belongs in this tool. Benchmark result tables are not part of this layout; do not start a new results tree beside `src/`.
+
+CLI (`paragvae.cli`) calls the baseline pipeline and returns `{status, ok, input_path}`.
 
 Contracts, test data, and integrative testing are on the [GitHub wiki](https://github.com/dsmutin/ParaGVAE/wiki). There is no `wiki/` tree in this repository.
 
@@ -60,6 +65,22 @@ conda activate paragvae
 ## GitHub
 
 Never `git push` unless the human explicitly asks. CI runs on GitHub after they push.
+
+## MetaMetro tensor
+
+MetaMetro 0.12.0 is a required dependency of this environment. Do not hard-code a path to its checkout in source, tests, configs, or examples.
+
+Train and score on a MetaMetro coloured graph tensor (`Cgt`). Do not keep a second graph schema, and do not hand-build the CSR, features, or colours that MetaMetro already writes. If the input is still an assembly, CFA, or CDBG, call MetaMetro to produce the tensor, then train on that object.
+
+`paragvae.metametro_path.ensure_metametro` fails when the package is missing or is not 0.12.0. `training_arrays` is the reader that turns one validated tensor into the arrays the GCN consumes.
+
+## Evaluation taxids
+
+On a simulated metagenome the scored id is the `tax_id` of the `sim` row in the accession table. That table is written before read generation.
+
+Do not replace it with Kraken, Kaiju, CheckM, a k-means colour, or a mock label. Do not copy it into node features, edge features, edge weights, or node/edge colours of the graph passed to the GCN. A training loss that consumes that id is the same leak. The id is an evaluation vector only.
+
+`paragvae.provenance_checks` enforces both checks. A benchmark that cannot name the pre-generation table stops.
 
 ## Citations
 
