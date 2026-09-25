@@ -1,5 +1,6 @@
 # metametro>=0.16.0 is required and is not a conda package.
-# CI installs the pinned commit with scripts/ci_install_metametro.sh.
+# GitHub Actions installs the current default branch into this env
+# with scripts/ci_install_metametro.sh after conda env create.
 name: paragvae
 channels:
   - conda-forge
