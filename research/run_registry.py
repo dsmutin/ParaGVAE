@@ -79,11 +79,17 @@ def main() -> None:
         indptr = np.asarray(graph.cgt.indptr)
         indices = np.asarray(graph.cgt.indices)
         edge_weight = np.asarray(graph.cgt.edge_features, dtype=np.float32)
-        if edge_weight.ndim == 2:
-            if edge_weight.shape[0] != int(indptr[-1]):
+        nnz = int(indptr[-1]) if len(indptr) else 0
+        if edge_weight.ndim == 2 and edge_weight.shape[1] == 0:
+            edge_weight = None
+        elif edge_weight.ndim == 2:
+            if edge_weight.shape[0] != nnz:
                 raise ValueError(f"{name} edge features do not match the CSR")
             edge_weight = edge_weight[:, 0]
-        edge_weight = edge_weight.reshape(-1)
+        elif edge_weight.size == 0:
+            edge_weight = None
+        else:
+            edge_weight = edge_weight.reshape(-1)
         n_edges = int(indptr[-1]) if len(indptr) else 0
         for seed in config["seeds"]:
             for arm, architecture, n_layers, loss, flip, clusterings in ARMS:
