@@ -25,6 +25,8 @@ jobs:
           auto-update-conda: true
           activate-environment: paragvae
           environment-file: environment.yml
+      - name: Install MetaMetro
+        run: bash scripts/ci_install_metametro.sh
       - name: Mandatory pytest
         timeout-minutes: 30
         run: pytest -m mandatory --tb=short

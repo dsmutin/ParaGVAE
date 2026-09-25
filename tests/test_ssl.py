@@ -99,10 +99,7 @@ def test_kraken_taxids_colour_one_cgt_node(tmp_path: Path) -> None:
     """One classified contig sets the only CGT colour column. A short Kraken line fails."""
     from paragvae.metametro_path import ensure_metametro
 
-    try:
-        ensure_metametro()
-    except FileNotFoundError:
-        pytest.skip("MetaMetro checkout is not on this machine")
+    ensure_metametro()
     fastg = tmp_path / "k21.fastg"
     fastg.write_text(
         ">NODE_1_length_32_cov_1.0_ID_1;\n" + ("A" * 32) + "\n"
@@ -138,10 +135,7 @@ def test_kraken_contig_headers_join_by_order(tmp_path: Path) -> None:
     """MEGAHIT contig headers map to CFA nodes in file order."""
     from paragvae.metametro_path import ensure_metametro
 
-    try:
-        ensure_metametro()
-    except FileNotFoundError:
-        pytest.skip("MetaMetro checkout is not on this machine")
+    ensure_metametro()
     fastg = tmp_path / "k21.fastg"
     fastg.write_text(
         ">NODE_1_length_32_cov_1.0_ID_1;\n" + ("A" * 32) + "\n"
@@ -240,10 +234,7 @@ def test_ssl_plan_argv_matches_metametro(tmp_path: Path) -> None:
     """Samovar and MEGAHIT argv come from MetaMetro. Kraken2 uses the stated flags."""
     from paragvae.metametro_path import ensure_metametro
 
-    try:
-        ensure_metametro()
-    except FileNotFoundError:
-        pytest.skip("MetaMetro checkout is not on this machine")
+    ensure_metametro()
     from metametro.contracts.external import (
         contig2fastg_command,
         megahit_command,

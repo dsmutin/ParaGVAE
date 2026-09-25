@@ -1,5 +1,5 @@
-# metametro>=0.16.0 must be installed in this environment. It is not a conda package.
-# Install that checkout into the env; do not hard-code its path in this repo.
+# metametro>=0.16.0 is required and is not a conda package.
+# CI installs the pinned commit with scripts/ci_install_metametro.sh.
 name: paragvae
 channels:
   - conda-forge
@@ -7,6 +7,7 @@ channels:
   - nodefaults
 dependencies:
   - python=3.12.14
+  - pip
   - setuptools=84.0.0
   - pytest=9.1.1
   - pytest-cov=7.1.0
