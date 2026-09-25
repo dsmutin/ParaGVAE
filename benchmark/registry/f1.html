@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    #vis.vega-embed {
+      width: 100%;
+      display: flex;
+    }
+
+    #vis.vega-embed details,
+    #vis.vega-embed details summary {
+      position: relative;
+    }
+  </style>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega@6"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega-lite@6.4.1"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega-embed@7"></script>
+</head>
+<body>
+  <div id="vis"></div>
+  <script>
+    (function(vegaEmbed) {
+      var spec = {"config": {"view": {"continuousWidth": 300, "continuousHeight": 300}}, "data": {"values": [{"dataset": "phage_x10", "arm": "gcn/kmeans", "f1": 0.5228889999999999, "f1_std": 0.02441500000000002, "ari": 0.4429905, "epochs": 20.0}, {"dataset": "phage_x10", "arm": "gcn/vamb", "f1": 0.523398, "f1_std": 0.0015259999999999718, "ari": 0.361911, "epochs": 20.0}, {"dataset": "phage_x10", "arm": "gcn/hdbscan", "f1": 0.386572, "f1_std": 0.004069000000000017, "ari": 0.445499, "epochs": 20.0}, {"dataset": "phage_x10", "arm": "sage/kmeans", "f1": 0.5178024999999999, "f1_std": 0.030518499999999976, "ari": 0.452503, "epochs": 36.0}, {"dataset": "phage_x10", "arm": "gat/kmeans", "f1": 0.527467, "f1_std": 0.004577999999999971, "ari": 0.44641200000000003, "epochs": 20.0}, {"dataset": "phage_x10", "arm": "gcn_layers3/kmeans", "f1": 0.49237, "f1_std": 0.0, "ari": 0.43005649999999995, "epochs": 42.0}, {"dataset": "phage_x10", "arm": "transformer/kmeans", "f1": 0.515768, "f1_std": 0.015259000000000023, "ari": 0.44584999999999997, "epochs": 22.5}, {"dataset": "phage_x10", "arm": "proxy/kmeans", "f1": 0.5228889999999999, "f1_std": 0.02441500000000002, "ari": 0.4429905, "epochs": 20.0}, {"dataset": "phage_x10", "arm": "contrastive/kmeans", "f1": 0.515768, "f1_std": 0.01729400000000003, "ari": 0.44628, "epochs": 16.0}, {"dataset": "phage_x10", "arm": "joint/kmeans", "f1": 0.569685, "f1_std": 0.0, "ari": 0.452824, "epochs": 39.0}, {"dataset": "phage_x10", "arm": "edge_flip/kmeans", "f1": 0.411495, "f1_std": 0.0015260000000000273, "ari": 0.0693365, "epochs": 21.5}, {"dataset": "heldout_genera", "arm": "gcn/kmeans", "f1": 0.172154, "f1_std": 0.016228999999999993, "ari": 0.07385800000000001, "epochs": 18.0}, {"dataset": "heldout_genera", "arm": "gcn/vamb", "f1": 0.3822795, "f1_std": 0.07369150000000002, "ari": 0.209225, "epochs": 18.0}, {"dataset": "heldout_genera", "arm": "gcn/hdbscan", "f1": 0.018714, "f1_std": 0.000699, "ari": 0.0032034999999999998, "epochs": 18.0}, {"dataset": "heldout_genera", "arm": "sage/kmeans", "f1": 0.236294, "f1_std": 0.078506, "ari": 0.1109445, "epochs": 17.0}, {"dataset": "heldout_genera", "arm": "gat/kmeans", "f1": 0.2057775, "f1_std": 0.0018634999999999902, "ari": 0.11246, "epochs": 20.0}, {"dataset": "heldout_genera", "arm": "gcn_layers3/kmeans", "f1": 0.177823, "f1_std": 0.014287999999999995, "ari": 0.0837695, "epochs": 14.0}, {"dataset": "heldout_genera", "arm": "transformer/kmeans", "f1": 0.2797795, "f1_std": 0.00427050000000001, "ari": 0.128664, "epochs": 12.0}, {"dataset": "heldout_genera", "arm": "proxy/kmeans", "f1": 0.172154, "f1_std": 0.016228999999999993, "ari": 0.07385800000000001, "epochs": 18.0}, {"dataset": "heldout_genera", "arm": "contrastive/kmeans", "f1": 0.1451315, "f1_std": 0.011259500000000006, "ari": 0.08266100000000001, "epochs": 18.0}, {"dataset": "heldout_genera", "arm": "biological/kmeans", "f1": 0.146374, "f1_std": 0.010949, "ari": 0.09002450000000001, "epochs": 44.0}, {"dataset": "heldout_genera", "arm": "joint/kmeans", "f1": 0.19327499999999997, "f1_std": 0.016695, "ari": 0.1318685, "epochs": 14.5}, {"dataset": "heldout_genera", "arm": "edge_flip/kmeans", "f1": 0.429259, "f1_std": 0.0, "ari": -0.000496, "epochs": 17.0}, {"dataset": "low75half", "arm": "gcn/kmeans", "f1": 0.290119, "f1_std": 0.06919199999999999, "ari": 0.2347765, "epochs": 33.0}, {"dataset": "low75half", "arm": "gcn/vamb", "f1": 0.6391115, "f1_std": 0.018329500000000054, "ari": 0.5547219999999999, "epochs": 33.0}, {"dataset": "low75half", "arm": "gcn/hdbscan", "f1": 0.031318, "f1_std": 0.004369999999999999, "ari": 0.010405500000000002, "epochs": 33.0}, {"dataset": "low75half", "arm": "sage/kmeans", "f1": 0.5059480000000001, "f1_std": 0.11968899999999999, "ari": 0.3389415, "epochs": 39.0}, {"dataset": "low75half", "arm": "gat/kmeans", "f1": 0.3689, "f1_std": 0.001577999999999996, "ari": 0.252428, "epochs": 21.5}, {"dataset": "low75half", "arm": "gcn_layers3/kmeans", "f1": 0.3097835, "f1_std": 0.028890499999999986, "ari": 0.2722405, "epochs": 26.0}, {"dataset": "low75half", "arm": "transformer/kmeans", "f1": 0.2789515, "f1_std": 0.03884450000000002, "ari": 0.1924225, "epochs": 18.0}, {"dataset": "low75half", "arm": "proxy/kmeans", "f1": 0.290119, "f1_std": 0.06919199999999999, "ari": 0.2347765, "epochs": 33.0}, {"dataset": "low75half", "arm": "contrastive/kmeans", "f1": 0.209274, "f1_std": 0.024035, "ari": 0.1607655, "epochs": 60.0}, {"dataset": "low75half", "arm": "biological/kmeans", "f1": 0.31852400000000003, "f1_std": 0.05681, "ari": 0.218582, "epochs": 22.0}, {"dataset": "low75half", "arm": "joint/kmeans", "f1": 0.3186455, "f1_std": 0.008618500000000001, "ari": 0.219709, "epochs": 26.5}, {"dataset": "low75half", "arm": "edge_flip/kmeans", "f1": 0.4788785, "f1_std": 0.00012149999999999661, "ari": 0.006794, "epochs": 35.5}, {"dataset": "half100half", "arm": "gcn/kmeans", "f1": 0.2079385, "f1_std": 0.0333725, "ari": 0.16582550000000001, "epochs": 9.0}, {"dataset": "half100half", "arm": "gcn/vamb", "f1": 0.768562, "f1_std": 0.028830999999999996, "ari": 0.5567845, "epochs": 9.0}, {"dataset": "half100half", "arm": "gcn/hdbscan", "f1": 0.037914500000000004, "f1_std": 0.001579500000000001, "ari": 0.014686499999999998, "epochs": 9.0}, {"dataset": "half100half", "arm": "sage/kmeans", "f1": 0.2051735, "f1_std": 0.0369275, "ari": 0.155738, "epochs": 9.0}, {"dataset": "half100half", "arm": "gat/kmeans", "f1": 0.1909555, "f1_std": 0.0077015, "ari": 0.155213, "epochs": 9.0}, {"dataset": "half100half", "arm": "gcn_layers3/kmeans", "f1": 0.22808050000000002, "f1_std": 0.05430449999999999, "ari": 0.167404, "epochs": 9.0}, {"dataset": "half100half", "arm": "transformer/kmeans", "f1": 0.2523695, "f1_std": 0.027251499999999998, "ari": 0.203729, "epochs": 9.0}, {"dataset": "half100half", "arm": "proxy/kmeans", "f1": 0.2079385, "f1_std": 0.0333725, "ari": 0.16582550000000001, "epochs": 9.0}, {"dataset": "half100half", "arm": "contrastive/kmeans", "f1": 0.2079385, "f1_std": 0.0333725, "ari": 0.16582550000000001, "epochs": 9.0}, {"dataset": "half100half", "arm": "biological/kmeans", "f1": 0.149289, "f1_std": 0.009084000000000009, "ari": 0.130901, "epochs": 43.0}, {"dataset": "half100half", "arm": "joint/kmeans", "f1": 0.1992495, "f1_std": 0.021129499999999996, "ari": 0.156711, "epochs": 9.0}]}, "facet": {"column": {"field": "dataset", "title": null, "type": "nominal"}}, "spec": {"layer": [{"mark": {"type": "bar"}, "encoding": {"color": {"field": "dataset", "title": "Dataset", "type": "nominal"}, "x": {"field": "arm", "sort": null, "title": null, "type": "nominal"}, "y": {"field": "f1", "title": "Contig F1", "type": "quantitative"}}}, {"mark": {"type": "errorbar"}, "encoding": {"x": {"field": "arm", "sort": null, "type": "nominal"}, "y": {"field": "f1", "title": "Contig F1", "type": "quantitative"}, "yError": {"field": "f1_std"}}}], "height": 160, "width": 120}, "resolve": {"scale": {"y": "shared"}}, "$schema": "https://vega.github.io/schema/vega-lite/v6.4.1.json"};
+      var embedOpt = {"mode": "vega-lite"};
+
+      function showError(el, error){
+          el.innerHTML = ('<div style="color:red;">'
+                          + '<p>JavaScript Error: ' + error.message + '</p>'
+                          + "<p>This usually means there's a typo in your chart specification. "
+                          + "See the javascript console for the full traceback.</p>"
+                          + '</div>');
+          throw error;
+      }
+      const el = document.getElementById('vis');
+      vegaEmbed("#vis", spec, embedOpt)
+        .catch(error => showError(el, error));
+    })(vegaEmbed);
+
+  </script>
+</body>
+</html>

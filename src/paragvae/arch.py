@@ -69,6 +69,8 @@ def train_architecture(
         raise ValueError("biological loss needs Kraken targets")
     features = _zscore(features)
     n, width = features.shape
+    if n < 1:
+        raise ValueError("architecture training needs at least one node")
     if width == 0:
         features = np.ones((n, 1), dtype=np.float32)
         width = 1

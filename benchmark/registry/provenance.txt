@@ -1,0 +1,8 @@
+command: PYTHONPATH=src python research/run_registry.py
+score: contig F1 and ARI from paragvae.score. Not AMBER f1_score_seq.
+budget: configs/datasets.yaml seeds [0, 1], max_epochs 60, patience 8, lr 0.05, hidden 32, latent 16
+hdbscan: conda-forge 0.8.44 build py312h0ec8046_1, imported from the extracted package because the home disk quota blocked conda install
+graphs: phage_x10, heldout_genera, low75half, half100half as listed in configs/datasets.yaml
+labels: phage CGT node_labels; the three assemblies use organism.taxId from their NCBI assembly reports
+biological loss: Kraken calls in work/reprofile/kraken_calls.tsv. phage_x10 has no such table.
+edge features: a width-0 matrix is treated as unweighted
