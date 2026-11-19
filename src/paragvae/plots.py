@@ -24,8 +24,8 @@ def _summary(rows: list[dict]) -> list[dict]:
             "ari": sum(ari) / len(ari),
             "epochs": sum(epochs) / len(epochs),
         }
-        if "amber_f1" in group[0]:
-            amber = [float(item["amber_f1"]) for item in group]
+        amber = _numeric_group(group, "amber_f1")
+        if amber is not None:
             amber_mean = sum(amber) / len(amber)
             amber_var = sum((value - amber_mean) ** 2 for value in amber) / len(amber)
             row["amber_f1"] = amber_mean
@@ -34,12 +34,29 @@ def _summary(rows: list[dict]) -> list[dict]:
     return summary
 
 
+def _numeric_group(group: list[dict], key: str) -> list[float] | None:
+    """Return finite values for ``key``, or None if any row leaves it empty."""
+    if key not in group[0]:
+        return None
+    values: list[float] = []
+    for item in group:
+        raw = item.get(key, "")
+        if raw is None or raw == "":
+            return None
+        values.append(float(raw))
+    return values
+
+
 def write_charts(rows: list[dict], dest: Path) -> None:
     """Write an HTML chart and a PNG when vl-convert is installed."""
     import altair as alt
 
     dest.mkdir(parents=True, exist_ok=True)
     summary_rows = _summary(rows)
+    if any("amber_f1" in row for row in summary_rows):
+        for row in summary_rows:
+            row.setdefault("amber_f1", "")
+            row.setdefault("amber_f1_std", "")
     fields = list(summary_rows[0])
     with (dest / "summary.csv").open("w", encoding="utf-8", newline="") as handle:
         writer = __import__("csv").DictWriter(handle, fieldnames=fields)
@@ -67,7 +84,7 @@ def write_charts(rows: list[dict], dest: Path) -> None:
         chart.save(str(dest / "f1.png"), scale_factor=2)
     except Exception as error:  # noqa: BLE001 — PNG is optional if the converter is absent
         (dest / "f1_png_error.txt").write_text(str(error), encoding="utf-8")
-    if "amber_f1" in summary_rows[0]:
+    if any(row.get("amber_f1", "") != "" for row in summary_rows):
         amber_bars = base.mark_bar().encode(
             x=alt.X("arm:N", title=None, sort=None),
             y=alt.Y("amber_f1:Q", title="AMBER F1 (seq)"),

@@ -16,7 +16,7 @@ Documentation of the checks lives on the [wiki](https://github.com/dsmutin/ParaG
 1. Load an assembly as a CGT. Topology stays a SciPy CSR matrix (`indptr`, `indices`). Node features are a frozen VAE latent or raw k-mer and depth. Discrete colours, when that arm asks for them, are extra `uint8` channels. Genome labels are used only to choose `k` and to score; they are not features and they do not enter the loss.
 2. Train a 2-layer GCN in `cpp/gcn_train`. One fifth of the undirected edges are held out and removed from the propagation operator. Training stops early (learning rate 0.05, at most 60 epochs, patience 8, from `configs/datasets.yaml`).
 3. Cluster the embedding. The default is k-means. The clustering check also runs average-linkage agglomerative clustering. `k` is the number of ground-truth genomes and is the same for every arm of a check.
-4. Score contig F1 and adjusted Rand index. A separate stage writes AMBER `f1_score_seq` (`amber_f1`) on the same bins. VAMB is not rerun.
+4. Score contig F1 and adjusted Rand index. A separate stage writes AMBER `f1_score_seq` (`amber_f1`) on the same bins when gold is available. VAMB is not rerun.
 
 ```text
 configs/datasets.yaml
@@ -63,6 +63,14 @@ python research/run_all.py
 Paths, the score definition, and the recorded means are in [docs/reproduction.md](docs/reproduction.md), [docs/metametro.md](docs/metametro.md), and [docs/findings.md](docs/findings.md). Charts are under `benchmark/`.
 
 `paragvae --version` prints the `VERSION` file. `paragvae` writes the scaffold JSON (`status`, `ok`, `input_path`). Hypothesis runs are the scripts above.
+
+Bundle folders come from `VAEGBIN_DATA` or `vaegbin_data` in `configs/datasets.yaml`. Gold tables for AMBER come from the `gold:` map in that file or from `VAEGBIN_GOLD_<NAME>` (for example `VAEGBIN_GOLD_STRONG100`). A gold file is a CAMI TSV or a CSV with `contig_id`, `genome_id`, and `length`.
+
+The grid flag `amber` (default `auto`) controls that stage:
+
+- `auto`: if those gold paths are empty, AMBER is skipped with one warning; contig F1 and ARI are still computed, and the `amber_*` columns in `results.csv` stay empty
+- `true`: require gold and stop with an error if it is missing
+- `false`: skip AMBER even when gold is present
 
 ## Tests
 

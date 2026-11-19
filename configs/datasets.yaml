@@ -3,6 +3,9 @@
 # Prebuilt VAEGbin bundles (Strong100 and the ONT/Illumina CSR dumps) are not
 # MetaMetro benchmarks. Set VAEGBIN_DATA to their root. Gold tables are paths
 # in this file or the matching VAEGBIN_GOLD_<NAME> variable.
+# amber: auto skips AMBER with one warning when those gold paths are empty,
+# true requires gold, and false disables the stage. Columns amber_* stay in
+# results.csv either way.
 vaegbin_data: ""
 bundles:
   strong100: strong100
@@ -14,6 +17,7 @@ gold:
   ont100m: ""
   ont1b: ""
   illumina: ""
+amber: auto
 seeds: [0, 1]
 max_epochs: 60
 patience: 8

@@ -15,7 +15,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from paragvae.cache import save_study  # noqa: E402
 from paragvae.plots import save_charts  # noqa: E402
-from paragvae.study import arm_is_redundant, run_arm  # noqa: E402
+from paragvae.study import amber_mode, arm_is_redundant, run_arm  # noqa: E402
 from paragvae.suite import arms_for, load_config, load_graphs  # noqa: E402
 
 
@@ -54,6 +54,7 @@ def write_provenance(dest: Path, hypothesis: str, config: dict) -> None:
         f"max_epochs: {config['max_epochs']}",
         f"patience: {config['patience']}",
         f"lr: {config['lr']}",
+        f"amber: {amber_mode(config.get('amber', 'auto'))}",
         f"metametro_version: {REQUIRED_METAMETRO}",
         f"metametro_commit: {_git_head(metametro_root())}",
         f"paragvae_commit: {_git_head(ROOT)}",
@@ -71,6 +72,7 @@ def main(hypothesis: str, graphs=None, config=None) -> Path:
         for graph in graphs:
             save_study(graph)
     arms = arms_for(hypothesis, int(config["max_epochs"]), int(config["patience"]), float(config["lr"]))
+    mode = amber_mode(config.get("amber", "auto"))
     rows = []
     bench = ROOT / "benchmark" / hypothesis
     skipped = []
@@ -82,7 +84,7 @@ def main(hypothesis: str, graphs=None, config=None) -> Path:
                 continue
             for seed in config["seeds"]:
                 job = bench / "jobs" / f"{graph.name}_{arm.arm}_{seed}"
-                row = run_arm(graph, arm, int(seed), work=job)
+                row = run_arm(graph, arm, int(seed), work=job, amber=mode)
                 rows.append(row)
                 print(
                     f"{row['dataset']} {row['arm']} seed={row['seed']} "

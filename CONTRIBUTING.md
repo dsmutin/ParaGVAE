@@ -70,7 +70,7 @@ Never `git push` unless the human explicitly asks. CI runs on GitHub after they 
 
 Do not add a new benchmark in this repository. Add it in MetaMetro (`metametro benchbuild`) and open a pull request there. Completion graphs are MetaMetro bench directories.
 
-Do not hard-code a machine path. Prebuilt bundles use `VAEGBIN_DATA` and `VAEGBIN_GOLD_<NAME>`. If a path is missing, stop.
+Do not hard-code a machine path. Prebuilt bundles use `VAEGBIN_DATA` and `VAEGBIN_GOLD_<NAME>`. If a bundle path is missing, stop. Gold is required only when `amber` is `true`; `auto` (the default) skips AMBER with one warning when gold is unset, and `false` disables it.
 
 Do not mock a benchmark graph, a taxonomy label, or a metric. The in-process MetaMetro bubble used by the test suite is a fixture, not a benchmark. A graph that exists only inside a test file stays there.
 

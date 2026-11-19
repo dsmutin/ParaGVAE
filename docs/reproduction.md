@@ -6,7 +6,7 @@ Historical May 2026 runs lived in `AIRI_may` and mixed three scores (internal co
 - bins from k-means unless the clustering hypothesis says otherwise
 - `k` = number of ground-truth genomes (same `k` for every arm)
 - contig F1 = majority-genome overlap; ARI from scikit-learn
-- AMBER `f1_score_seq` is a later stage on the same bins (`amber_f1`, `amber_ap`, `amber_ar`). It does not replace contig F1
+- AMBER `f1_score_seq` is a later stage on the same bins (`amber_f1`, `amber_ap`, `amber_ar`). It does not replace contig F1. The grid flag `amber` (default `auto`) skips this stage with one warning when gold paths are empty, keeps the `amber_*` columns empty, and still writes F1 and ARI. `amber: true` requires gold; `amber: false` turns the stage off.
 
 VAMB is not re-run. Contig F1 will not match `results_final_summary.md`. AMBER is the sequence-level score from `amber.py`.
 
@@ -37,7 +37,7 @@ Passing a mask that is True on the nodes you score is label leakage into the tes
 
 ## Data
 
-`configs/datasets.yaml` points at the MetaMetro checkout and the VAEGbin bundles `strong100`, `samovar10_ont100m_gfa`, `samovar10_ont1b_gfa`, and `samovar10_illumina_100m`.
+`configs/datasets.yaml` names the VAEGbin bundles `strong100`, `samovar10_ont100m_gfa`, `samovar10_ont1b_gfa`, and `samovar10_illumina_100m`. Set `VAEGBIN_DATA` to their root (or `vaegbin_data` in that file). Gold tables are `gold:` paths in the same file or `VAEGBIN_GOLD_<NAME>`. A gold file is a CAMI TSV or a CSV with `contig_id`, `genome_id`, and `length`. MetaMetro is the installed package, not a path in that file.
 
 ```bash
 conda activate paragvae

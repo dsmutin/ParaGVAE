@@ -36,6 +36,20 @@ class Arm:
     lr: float = 0.05
 
 
+def amber_mode(value: object = "auto") -> str:
+    """Return ``auto``, ``true``, or ``false`` from a grid config value."""
+    if value is None:
+        return "auto"
+    if value is True:
+        return "true"
+    if value is False:
+        return "false"
+    text = str(value).strip().lower()
+    if text in {"auto", "true", "false"}:
+        return text
+    raise ValueError(f"amber must be auto, true, or false, not {value!r}")
+
+
 def _degree_and_clustering(indptr: np.ndarray, indices: np.ndarray) -> np.ndarray:
     """Degree and local clustering coefficient, ignoring self-loops.
 
@@ -133,8 +147,18 @@ def _features(graph: StudyGraph, arm: Arm, indptr: np.ndarray, indices: np.ndarr
     return np.hstack(parts)
 
 
-def run_arm(graph: StudyGraph, arm: Arm, seed: int, work: Path | None = None) -> dict[str, float | int | str | bool]:
+def run_arm(
+    graph: StudyGraph,
+    arm: Arm,
+    seed: int,
+    work: Path | None = None,
+    *,
+    amber: str = "auto",
+) -> dict[str, float | int | str | bool]:
     """Train until validation loss stalls, then score bins."""
+    mode = amber_mode(amber)
+    if mode == "true" and graph.gold is None:
+        raise ValueError(f"{graph.name} has no AMBER gold standard (amber: true)")
     indptr, indices = _topology(graph, arm)
     features = _features(graph, arm, indptr, indices)
     started = time.perf_counter()
@@ -154,8 +178,6 @@ def run_arm(graph: StudyGraph, arm: Arm, seed: int, work: Path | None = None) ->
         lr=arm.lr,
         work=job,
     )
-    if graph.gold is None:
-        raise ValueError(f"{graph.name} has no AMBER gold standard")
     predicted = cluster_embedding(fit.embedding, graph.labels, arm.clustering, seed)
     labels = np.asarray(graph.labels)
     usable = labels >= 0
@@ -163,7 +185,13 @@ def run_arm(graph: StudyGraph, arm: Arm, seed: int, work: Path | None = None) ->
         ari = 0.0
     else:
         ari = float(adjusted_rand_score(labels[usable], predicted[usable]))
-    amber = score_bins(graph.sequence_ids, predicted, graph.gold, job / "amber_stage")
+    if mode != "false" and graph.gold is not None:
+        amber = score_bins(graph.sequence_ids, predicted, graph.gold, job / "amber_stage")
+        amber_f1: float | str = round(amber["amber_f1"], 6)
+        amber_ap: float | str = round(amber["amber_ap"], 6)
+        amber_ar: float | str = round(amber["amber_ar"], 6)
+    else:
+        amber_f1 = amber_ap = amber_ar = ""
     return {
         "dataset": graph.name,
         "hypothesis": arm.hypothesis,
@@ -175,9 +203,9 @@ def run_arm(graph: StudyGraph, arm: Arm, seed: int, work: Path | None = None) ->
         "train_loss": round(fit.train_loss, 6),
         "ari": round(ari, 6),
         "f1": round(contig_f1(labels, predicted), 6),
-        "amber_f1": round(amber["amber_f1"], 6),
-        "amber_ap": round(amber["amber_ap"], 6),
-        "amber_ar": round(amber["amber_ar"], 6),
+        "amber_f1": amber_f1,
+        "amber_ap": amber_ap,
+        "amber_ar": amber_ar,
         "n_nodes": int(graph.cgt.num_nodes),
         "n_edges": int(indices.shape[0]),
         "seconds": round(time.perf_counter() - started, 3),
