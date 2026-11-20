@@ -11,7 +11,7 @@ from pathlib import Path
 
 import numpy as np
 
-REQUIRED_METAMETRO = "0.22.0"
+REQUIRED_METAMETRO = "0.22.1"
 
 
 def ensure_metametro() -> str:
