@@ -164,12 +164,33 @@ def composition_color_matrix(graph: StudyGraph) -> np.ndarray:
     return stored
 
 
+def coloring_source(graph: StudyGraph, arm: Arm) -> str:
+    """Name the colour layer an arm trains on.
+
+    ``composition_kmeans`` is the stored MetaMetro layer. ``kmeans_fallback``
+    means the graph has no such layer and ``_features`` computes k-means
+    colours from the raw features instead. Arms without colours get ``""``.
+    """
+    if not arm.colors:
+        return ""
+    stored = composition_color_matrix(graph)
+    if stored.ndim != 2 or stored.shape[1] == 0:
+        return "kmeans_fallback"
+    return "composition_kmeans"
+
+
 def _features(graph: StudyGraph, arm: Arm, indptr: np.ndarray, indices: np.ndarray) -> np.ndarray:
     base = graph.raw_features if arm.joint else graph.vae_features
     parts = [np.asarray(base, dtype=np.float32)]
     if arm.colors:
         stored = composition_color_matrix(graph)
-        if stored.ndim != 2 or stored.shape[1] == 0:
+        if coloring_source(graph, arm) == "kmeans_fallback":
+            _warn_once(
+                "kmeans-fallback",
+                graph.name,
+                f"{graph.name} has no composition_kmeans colour layer; "
+                "the colouring arm uses k-means colours from raw features (coloring_source=kmeans_fallback).",
+            )
             stored = composition_colors(graph.raw_features, n_colors=8, seed=0)
         parts.append(stored.astype(np.float32))
     if arm.multiscale:
@@ -230,6 +251,7 @@ def run_arm(
             "n_edges": int(indices.shape[0]),
             "seconds": 0.0,
             "backend": "cpp",
+            "coloring_source": coloring_source(graph, arm),
         }
     indptr, indices = _topology(graph, arm)
     features = _features(graph, arm, indptr, indices)
@@ -278,4 +300,5 @@ def run_arm(
         "n_edges": int(indices.shape[0]),
         "seconds": round(time.perf_counter() - started, 3),
         "backend": "cpp",
+        "coloring_source": coloring_source(graph, arm),
     }

@@ -13,6 +13,7 @@ Scaffold checklist. Check a box only after mandatory tests pass.
 - [x] MetaMetro v0.21.0 pin (version 0.7.8)
 - [x] MetaMetro v0.22.0 pin (version 0.7.9)
 - [x] MetaMetro pin has one source, ``PIN`` in ``scripts/ci_install_metametro.sh``; consistency test (version 0.7.10)
+- [x] Colouring arm ignores foreign namespaces (kraken2, decaying); k-means fallback warns and sets ``coloring_source`` (version 0.7.11)
 - [ ] ``benchmark/registry/results.csv`` rows for ``phage_x10``, ``heldout_genera``, ``low75half``, and ``half100half`` are stale pending dsmutin's ctlab runs; they were not recomputed in 0.7.7
 - [x] Edge line-graph flip (train and infer)
 - [x] Decaying label leakage from an observed-node mask
