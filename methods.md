@@ -8,24 +8,24 @@ Contig F1 matches clusters to genomes by overlap. ARI is computed on labels at l
 
 | Arm | What it changes | phage_x10 | heldout_genera | low75half | half100half |
 |---|---|---:|---:|---:|---:|
-| gcn / kmeans | 2-layer GCN, edge BCE | 0.523 | 0.172 | 0.290 | 0.208 |
-| gcn / vamb | same embedding, iterative medoid | 0.523 | 0.382 | 0.639 | 0.769 |
-| gcn / hdbscan | same embedding, HDBSCAN, noise assigned to the nearest mean | 0.387 | 0.019 | 0.031 | 0.038 |
-| sage | GraphSAGE blocks, then a dense map | 0.518 | 0.236 | 0.506 | 0.205 |
-| gat | one-head neighbour attention, then a dense map | 0.527 | 0.206 | 0.369 | 0.191 |
-| gcn_layers3 | GCN with 3 layers | 0.492 | 0.178 | 0.310 | 0.228 |
-| transformer | global attention, residual, one GCN block | 0.516 | 0.280 | 0.279 | 0.252 |
-| proxy | marker weight 2 on top of edge BCE | 0.523 | 0.172 | 0.290 | 0.208 |
-| contrastive | InfoNCE against 8 negatives | 0.516 | 0.145 | 0.209 | 0.208 |
-| biological | edge BCE plus Kraken taxonomy consistency and abundance R². Kraken is a prediction, so this arm is not a valid use of the pre-generation taxid and is not trained anymore | — | 0.146 | 0.319 | 0.149 |
-| joint | linear VAE whose sample is the GCN input; embedding is the concatenation | 0.570 | 0.193 | 0.319 | 0.199 |
-| edge_flip | line graph, then the 2-layer GCN, pooled back to nodes | 0.411 | 0.429 | 0.479 | — |
+| gcn / kmeans | 2-layer GCN, edge BCE | 0.292 | — | — | — |
+| gcn / vamb | same embedding, iterative medoid | 0.021 | — | — | — |
+| gcn / hdbscan | same embedding, HDBSCAN, noise assigned to the nearest mean | 0.240 | — | — | — |
+| sage | GraphSAGE blocks, then a dense map | 0.452 | — | — | — |
+| gat | one-head neighbour attention, then a dense map | 0.504 | — | — | — |
+| gcn_layers3 | GCN with 3 layers | 0.451 | — | — | — |
+| transformer | global attention, residual, one GCN block | 0.406 | — | — | — |
+| proxy | marker weight 2 on top of edge BCE | 0.292 | — | — | — |
+| contrastive | InfoNCE against 8 negatives | 0.408 | — | — | — |
+| biological | edge BCE plus Kraken taxonomy consistency and abundance R². Kraken is a prediction, so this arm is not a valid use of the pre-generation taxid and is not trained anymore | — | — | — | — |
+| joint | linear VAE whose sample is the GCN input; embedding is the concatenation | 0.378 | — | — | — |
+| edge_flip | line graph, then the 2-layer GCN, pooled back to nodes | 0.455 | — | — | — |
 
-`phage_x10` has no Kraken call table. The biological numbers on the three assemblies were fit to Kraken calls, not to the sim `tax_id`, and that arm is not trained under the label-provenance rule. `half100half` stores 0 edges, so the line graph has no nodes and `edge_flip` is `status=missing`.
+The table was recomputed in version 0.7.13 against MetaMetro v0.22.1. `phage_x10` is the `phage_species_5_x10` build (identity `78121c1b…564c`). Its gold is 5 phage species from `load_bench_gold_cgt`; 80 of 983 unitigs have no gold and are not scored. Before 0.7.13 those 80 unitigs were a scored class and the input was a stored CGT, so the old phage numbers are not comparable. `heldout_genera`, `low75half`, and `half100half` are only contract builds here (no `cdbg/`, PAF, or assembly report), so every row is `status=missing` with that reason; no score is carried over. The biological arm is `status=missing` everywhere.
 
-The completion trainer does not read colours. Assembly node features are length, GC, and out-degree. The phage tensor feature is `out_degree`. Edge weights are the first edge-feature column when that matrix has a column; the phage matrix has width 0, so those edges are unweighted. Gold taxon on a MetaMetro bench is read with `load_bench_gold_cgt`, not from a colour layer. Held-out assembly labels still come from the accession table and PAF. Colour palettes are not a GCN input. The scored id for the three assemblies is `tax_id` on the `sim` row of `accessions.tsv`. A contig gets that id when the alignment target is the simulated accession. Phage labels are the designed phage classes stored on the CGT, and the two phage colours are sample ids.
+The completion trainer does not read colours. Assembly node features are length, GC, and out-degree. The phage tensor features are the bench k-mer composition and coverage (137 columns). Edge weights are the first edge-feature column when that matrix has a column; the phage matrix has width 0, so those edges are unweighted. Gold taxon on a MetaMetro bench is read with `load_bench_gold_cgt`, not from a colour layer. Held-out assembly labels still come from the accession table and PAF. Colour palettes are not a GCN input. The scored id for the three assemblies is `tax_id` on the `sim` row of `accessions.tsv`. A contig gets that id when the alignment target is the simulated accession. Phage labels are the species gold of the bench.
 
-These four graphs have no single-copy marker pairs. `proxy` is then the same loss as `gcn`, and the F1 values match. `half100half` also has no edges, so every message-passing arm there is a function of the node features alone. The VAMB score of 0.769 on that graph is the medoid clustering of that feature embedding, not a message that crossed an edge. `heldout_genera` has 24 stored edges on 6439 nodes, so a high `edge_flip` F1 there is not evidence of long-range message passing.
+These graphs have no single-copy marker pairs. `proxy` is then the same loss as `gcn`, and the F1 values match. In the earlier assembly builds `half100half` stored no edges and `heldout_genera` 24 edges on 6439 nodes, so scores there would not be evidence of message passing.
 
 The May graph transformer used 4 attention heads. This run uses 1 head. The joint model is a linear encoder and decoder plus a 2-layer GCN, not the TensorFlow VAE from `AIRI_may/scripts/end2end`.
 

@@ -78,7 +78,13 @@ def main() -> None:
             rows.extend(csv.DictReader(handle))
     for name, path in paths.items():
         print(f"loading {name}", flush=True)
-        graph, bio = load_completion(name, path)
+        try:
+            graph, bio = load_completion(name, path)
+        except FileNotFoundError as exc:
+            print(f"  {name} missing: {exc}", flush=True)
+            rows.extend(_unloaded_rows(name, path, config["seeds"], exc, done))
+            _write(destination, rows)
+            continue
         labels = np.asarray(graph.labels)
         if name != "phage_x10":
             assert_labels_are_simulation_taxids(labels, simulation_tax_ids(path / "accessions.tsv"))
@@ -212,6 +218,29 @@ def _missing(dataset, seed, arm, architecture, n_layers, loss, method, n_nodes, 
         "n_edges": n_edges,
         "note": note,
     }
+
+
+def _unloaded_rows(name: str, path: Path, seeds, exc: Exception, done: set[tuple]) -> list[dict]:
+    """``status=missing`` rows for every seed, arm, and clustering of a graph that cannot load.
+
+    A contract-only bench has no ``cdbg/`` and no gold, so nothing is scored.
+    """
+    status = ""
+    manifest = Path(path) / "manifest.yaml"
+    if manifest.is_file():
+        for line in manifest.read_text(encoding="utf-8").splitlines():
+            if line.startswith("status:"):
+                status = line.split(":", 1)[1].strip()
+    prefix = f"bench status {status}; " if status else ""
+    note = f"{prefix}graph not built, not scored: {exc}"
+    rows = []
+    for seed in seeds:
+        for arm, architecture, n_layers, loss, _flip, clusterings in ARMS:
+            for method in clusterings:
+                if (name, int(seed), arm, method) in done:
+                    continue
+                rows.append(_missing(name, seed, arm, architecture, n_layers, loss, method, "", "", note))
+    return rows
 
 
 def _done(path: Path) -> set[tuple]:
