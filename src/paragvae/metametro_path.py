@@ -18,7 +18,8 @@ def ensure_metametro() -> str:
     """Import MetaMetro and return its version.
 
     The package must already be installed in this environment. A missing
-    install or a different version is an error.
+    install or a version older than ``REQUIRED_METAMETRO`` is an error; a
+    newer version is accepted, matching ``metametro>=`` in pyproject.toml.
     """
     try:
         import metametro

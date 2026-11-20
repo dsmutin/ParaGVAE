@@ -12,6 +12,8 @@ sys.path.insert(0, str(ROOT / "research"))
 
 from run_hypothesis import write_provenance  # noqa: E402
 
+from paragvae.metametro_path import REQUIRED_METAMETRO  # noqa: E402
+
 pytestmark = pytest.mark.mandatory
 
 
@@ -29,5 +31,5 @@ def test_provenance_records_config(tmp_path: Path) -> None:
     assert "lr: 0.05" in text
     assert "command: python research/run_hypothesis.py loss" in text
     assert "numpy:" in text
-    assert "metametro_version: 0.22.0" in text
+    assert f"metametro_version: {REQUIRED_METAMETRO}" in text
     assert "metametro_commit:" in text

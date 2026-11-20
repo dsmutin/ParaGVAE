@@ -1,6 +1,6 @@
 # MetaMetro data structures
 
-ParaGVAE does not invent a second graph schema. MetaMetro 0.22.0 is a required installed package. CI installs the pin in `scripts/ci_install_metametro.sh`. Source code does not store a path to that checkout.
+ParaGVAE does not invent a second graph schema. MetaMetro is a required installed package. The pinned tag is `PIN` in `scripts/ci_install_metametro.sh`, and CI installs it from there. Source code does not store a path to that checkout.
 
 Training reads a coloured graph tensor (`Cgt`) and nothing assembled beside it. When a CFA, CDBG, or FASTG has to become a tensor, the call is a MetaMetro converter (`cdbg_to_cgt`, `cfa_to_cdbg`, `cgt_from_csr`, `load_cgt`).
 

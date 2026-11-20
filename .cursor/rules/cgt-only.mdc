@@ -1,11 +1,11 @@
 ---
-description: Train only on a MetaMetro CGT. The required MetaMetro version is the 0.17.x pin in scripts/ci_install_metametro.sh.
+description: Train only on a MetaMetro CGT. The required MetaMetro version is PIN in scripts/ci_install_metametro.sh.
 alwaysApply: true
 ---
 
 # Coloured graph tensor only
 
-MetaMetro 0.17.x is an obligatory dependency. The exact tag lives in `scripts/ci_install_metametro.sh`; do not repeat it here. Do not hard-code a filesystem path to that checkout.
+MetaMetro is an obligatory dependency. The exact tag is `PIN` in `scripts/ci_install_metametro.sh`; do not repeat it here. Do not hard-code a filesystem path to that checkout.
 
 The model input is a MetaMetro coloured graph tensor (`Cgt`). Do not train on a raw adjacency, a FASTG, a GFA, or a hand-built CSR that bypasses that tensor.
 

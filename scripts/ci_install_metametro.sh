@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
-# Install MetaMetro tag v0.22.0, the pin this repository is tested against.
+# Install the MetaMetro tag in PIN, the pin this repository is tested against.
 # The package is not on conda. An editable install keeps VERSION beside the
 # sources, which is how MetaMetro reports its version.
-# Keep the tag in this file only; other docs should point here instead of
-# repeating it.
+# PIN is the single source of truth. Prose docs point here instead of
+# repeating it; tests/test_pin_consistency.py checks the machine-readable
+# copies (pyproject.toml, environment.yml, REQUIRED_METAMETRO) against it.
 set -euo pipefail
 
 PIN=v0.22.0
