@@ -14,7 +14,7 @@ from pathlib import Path
 import numpy as np
 
 from paragvae.bioloss import BioTargets, load_kraken_targets
-from paragvae.graphs import StudyGraph
+from paragvae.graphs import StudyGraph, load_metametro_bench
 from paragvae.heldout import cdbg_dir, load_heldout_graph
 from paragvae.metametro_path import ensure_metametro
 
@@ -93,11 +93,22 @@ def load_completion(name: str, path: Path) -> tuple[StudyGraph, BioTargets | Non
 
 
 def _phage(path: Path) -> StudyGraph:
-    folder = Path(path) / "cgt"
+    root = Path(path)
+    if (root / "ground_truth" / "taxon_nodes.tsv").is_file():
+        return load_metametro_bench(root, name="phage_x10")
+    folder = root / "cgt"
     required = ("indptr.npy", "indices.npy", "node_features.npy", "node_labels.npy", "edge_features.npy")
     missing = [name for name in required if not (folder / name).is_file()]
     if missing:
         raise FileNotFoundError(f"phage CGT is missing {', '.join(missing)} under {folder}")
+    import warnings
+
+    warnings.warn(
+        "phage_x10 has no ground_truth/taxon_nodes.tsv; labels are read from the "
+        "stored CGT node_labels.npy. Rebuild the bench and use load_bench_gold_cgt.",
+        UserWarning,
+        stacklevel=2,
+    )
     ensure_metametro()
     from metametro.formats.cgt.io import load_cgt
 

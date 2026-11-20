@@ -61,8 +61,8 @@ def load_heldout_graph(
         raise ValueError(f"{folder} has no unitigs")
     features = _node_features(cdbg, unitigs)
     labels = _species_labels(root, unitigs, paf, report)
-    # Colours on the CDBG are taxon names. Node labels are the evaluation
-    # taxids. Neither is copied onto the tensor the trainer reads.
+    # Evaluation labels come from the assembly report and PAF, not from a
+    # taxon colour layer or ground_truth/. Colours are dropped before training.
     graph = cdbg_to_cgt(
         cdbg,
         node_features=features,

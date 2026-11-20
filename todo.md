@@ -9,6 +9,8 @@ Scaffold checklist. Check a box only after mandatory tests pass.
 - [x] Shared Adam, z-score, and init in ``paragvae.optim`` (version 0.7.4)
 - [x] ``completion_paths`` only treats a failed ``resolve`` as a filesystem path (version 0.7.5)
 - [x] Shared ``score.evaluate`` path; removed ``vaegcn_*`` and ``flip.cluster_embeddings`` (version 0.7.6)
+- [x] MetaMetro v0.20.1 pin; bench gold from ``load_bench_gold_cgt``; composition-only colouring arm (version 0.7.7)
+- [ ] ``benchmark/registry/results.csv`` rows for ``phage_x10``, ``heldout_genera``, ``low75half``, and ``half100half`` are stale pending dsmutin's ctlab runs; they were not recomputed in 0.7.7
 - [x] Edge line-graph flip (train and infer)
 - [x] Decaying label leakage from an observed-node mask
 - [x] SSL plan plus supervised class-weighted GCN

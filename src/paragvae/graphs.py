@@ -1,4 +1,4 @@
-"""Build a MetaMetro coloured graph tensor from a VAEGbin bundle or a fixture."""
+"""Build a MetaMetro coloured graph tensor from a VAEGbin bundle, a bench, or a fixture."""
 
 from __future__ import annotations
 
@@ -30,6 +30,7 @@ class StudyGraph:
     labels: np.ndarray
     sequence_ids: list[str]
     gold: dict[str, tuple[str, int]] | None = None
+    bench_dir: Path | None = None
 
 
 def cgt_from_csr(
@@ -217,3 +218,98 @@ def composition_colors(features: np.ndarray, n_colors: int = 8, seed: int = 0) -
     from metametro.contracts.composition import kmeans_onehot
 
     return kmeans_onehot(features, n_clusters=n_colors, seed=seed)
+
+
+def labels_from_gold_colors(node_colors: object) -> np.ndarray:
+    """Map ``load_bench_gold_cgt(...).node_colors`` to integer evaluation labels.
+
+    Each row is the multi-hot gold mask of one CGT node. A row with no gold
+    value becomes ``-1``. A row with one or more values takes ``argmax``.
+    """
+    colors = np.asarray(node_colors)
+    if colors.ndim != 2 or colors.shape[0] == 0:
+        return np.zeros((0,), dtype=np.int64)
+    labels = np.full(colors.shape[0], -1, dtype=np.int64)
+    if colors.shape[1] == 0:
+        return labels
+    present = np.asarray(colors).reshape(colors.shape[0], colors.shape[1]).any(axis=1)
+    if present.any():
+        labels[present] = np.argmax(colors[present], axis=1).astype(np.int64)
+    return labels
+
+
+def bench_color_namespaces(outdir: str | Path) -> set[str]:
+    """Namespaces present on a bench CDBG, without filtering the graph."""
+    ensure_metametro()
+    from metametro.bench import load_bench_cdbg
+
+    graph = load_bench_cdbg(Path(outdir))
+    return {str(row.get("namespace")) for row in (graph.colors or []) if row.get("namespace")}
+
+
+def load_metametro_bench(outdir: str | Path, name: str | None = None) -> StudyGraph:
+    """Load a MetaMetro bench directory for study arms.
+
+    Evaluation labels and AMBER gold come from ``load_bench_gold_cgt``, never
+    from a ``taxon`` colour namespace. The CGT kept on the study graph holds
+    only the ``composition`` namespace when that layer exists. The loader
+    never asks ``load_bench_*`` for a namespace the graph lacks, so a missing
+    ``composition`` layer does not raise on MetaMetro 0.20.2.
+    """
+    folder = Path(outdir)
+    label = name or folder.name
+    gold_table = folder / "ground_truth" / "taxon_nodes.tsv"
+    if not gold_table.is_file():
+        raise FileNotFoundError(
+            f"{label}: missing {gold_table}; bench gold is read with "
+            "metametro.bench.load_bench_gold_cgt, not from a taxon colour layer"
+        )
+    ensure_metametro()
+    from metametro.bench import load_bench_cdbg, load_bench_cgt, load_bench_gold, load_bench_gold_cgt, namespaces_for
+
+    cdbg = load_bench_cdbg(folder)
+    present = {str(row.get("namespace")) for row in (cdbg.colors or []) if row.get("namespace")}
+    composition = namespaces_for(("composition_kmeans",))
+    if composition and set(composition) <= present:
+        cgt = load_bench_cgt(folder, namespaces=composition)
+    else:
+        cgt = load_bench_cgt(folder)
+        n_nodes = int(cgt.num_nodes)
+        n_edges = int(cgt.num_edges)
+        cgt.node_colors = np.zeros((n_nodes, 0), dtype=np.uint8)
+        cgt.edge_colors = np.zeros((n_edges, 0), dtype=np.uint8)
+        cgt.color_ids = []
+        if cgt.node_color_weights is not None:
+            cgt.node_color_weights = np.zeros((n_nodes, 0), dtype=np.float32)
+        if cgt.edge_color_weights is not None:
+            cgt.edge_color_weights = np.zeros((n_edges, 0), dtype=np.float32)
+    gold_cgt = load_bench_gold_cgt(folder)
+    gold_labels = load_bench_gold(folder)
+    labels = labels_from_gold_colors(gold_cgt.node_colors)
+    features = np.asarray(cgt.node_features, dtype=np.float32)
+    if labels.shape[0] != features.shape[0]:
+        raise ValueError(f"{label}: gold labels and CGT features have different lengths")
+    sequence_ids = [str(row["source_id"]) for row in cgt.mapping]
+    if len(sequence_ids) != features.shape[0]:
+        raise ValueError(f"{label}: CGT mapping length does not match the node count")
+    lengths = {unitig.unitig_id: len(unitig.sequence) for unitig in cdbg.unitigs}
+    values = gold_labels.values
+    gold: dict[str, tuple[str, int]] = {}
+    for sequence_id, code in zip(sequence_ids, labels):
+        if int(code) < 0:
+            continue
+        genome = values[int(code)] if int(code) < len(values) else str(int(code))
+        if sequence_id not in lengths:
+            raise ValueError(f"{label}: unitig {sequence_id} is missing from the CDBG")
+        gold[sequence_id] = (str(genome), int(lengths[sequence_id]))
+    return StudyGraph(
+        name=label,
+        cgt=cgt,
+        different_pairs=np.zeros((0, 2), dtype=np.int64),
+        vae_features=features,
+        raw_features=features.copy(),
+        labels=labels,
+        sequence_ids=sequence_ids,
+        gold=gold or None,
+        bench_dir=folder,
+    )

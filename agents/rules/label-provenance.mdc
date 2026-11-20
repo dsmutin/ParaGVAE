@@ -15,4 +15,6 @@ Do not put that taxid into the graph the GCN trains on. Forbidden carriers:
 - edge weights
 - node or edge colours, including a taxon palette copied from the CDBG
 
+On a MetaMetro bench, evaluation labels come from `load_bench_gold_cgt`, never from a `taxon` colour namespace.
+
 The id may be stored only as the evaluation vector used after training. A training loss that takes the evaluation taxid, or a call that emits it, is the same leak.

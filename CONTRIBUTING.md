@@ -70,7 +70,7 @@ Never `git push` unless the human explicitly asks. CI runs on GitHub after they 
 
 Do not add a new benchmark in this repository. Add it in MetaMetro (`metametro benchbuild`) and open a pull request there. Completion graphs are MetaMetro bench directories.
 
-Do not hard-code a machine path. Prebuilt bundles use `VAEGBIN_DATA` and `VAEGBIN_GOLD_<NAME>`. If a bundle path is missing, stop. Gold is required only when `amber` is `true`; `auto` (the default) skips AMBER with one warning when gold is unset, and `false` disables it.
+Do not hard-code a machine path. Prebuilt bundles use `VAEGBIN_DATA` and `VAEGBIN_GOLD_<NAME>`. If a bundle path is missing, stop. Gold is required only when `amber` is `true`; `auto` (the default) skips AMBER with one warning per graph when gold is unset (`run_arm` and, for the configured suite, `load_graphs`), and `false` disables it. If a graph has fewer than two usable evaluation labels (`>= 0`), `run_arm` warns once and returns `status=no_labels` with NaN ARI and F1 instead of writing 0.
 
 Do not mock a benchmark graph, a taxonomy label, or a metric. The in-process MetaMetro bubble used by the test suite is a fixture, not a benchmark. A graph that exists only inside a test file stays there.
 
@@ -78,21 +78,21 @@ Do not copy an evaluation target into graph features or colours. The simulated t
 
 ## MetaMetro tensor
 
-MetaMetro 0.16.0 is a required dependency of this environment. Do not hard-code a path to its checkout in source, tests, configs, or examples.
+MetaMetro 0.20.1 is a required dependency of this environment. CI installs the pin in `scripts/ci_install_metametro.sh` (tag `v0.20.1`). Do not hard-code a path to its checkout in source, tests, configs, or examples.
 
 Train and score on a MetaMetro coloured graph tensor (`Cgt`). Do not keep a second graph schema, and do not hand-build the CSR, features, or colours that MetaMetro already writes. If the input is still an assembly, CFA, or CDBG, call MetaMetro to produce the tensor, then train on that object.
 
-`paragvae.metametro_path.ensure_metametro` fails when the package is missing or is older than 0.16.0. `training_arrays` is the reader that turns one validated tensor into the arrays the GCN consumes.
+`paragvae.metametro_path.ensure_metametro` fails when the package is missing or is older than 0.20.1. `training_arrays` is the reader that turns one validated tensor into the arrays the GCN consumes.
 
 ## Colourings
 
 Do not add a new colouring method in this repository. Add it in MetaMetro and open a pull request there.
 
-Do not mock a colouring. The colouring arm reads CGT colour columns that MetaMetro wrote (`composition`, `kraken2`, `sample`, ...). `composition_colors` is a MetaMetro k-means helper used only when those columns are empty.
+Do not mock a colouring. The colouring arm (`cgt_colors`) uses only the `composition` namespace, loaded with `load_bench_cgt(..., namespaces=namespaces_for(("composition_kmeans",)))` when that namespace is present on the bench. It never asks `filter_colours` / `load_bench_*` for a namespace the graph lacks. `composition_colors` is a MetaMetro k-means helper used when the composition layer is empty, including the `mock_cgt` fixture and VAEGbin graphs.
 
 Check that a selected colouring exists on the bench ToCUMG before training. If the colour matrix is empty and you expected a layer, stop.
 
-Use `filter_colours` / `load_bench_cgt(..., namespaces=...)` to keep the layers an arm needs.
+Use `load_bench_cgt(..., namespaces=...)` to keep the layers an arm needs, after checking those namespaces exist on the graph. Gold labels for a MetaMetro bench come from `load_bench_gold_cgt(bench_dir).node_colors` (row-wise argmax, or `-1` if the row is empty). Do not read `taxon` as a colour namespace.
 
 ## Evaluation taxids
 

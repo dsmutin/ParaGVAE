@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+import warnings
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -133,11 +134,41 @@ def assembly_edge_weight(graph: StudyGraph, arm: Arm, indptr: np.ndarray) -> np.
     return weight
 
 
+_WARNED: set[tuple[str, str]] = set()
+
+
+def _warn_once(kind: str, name: str, message: str) -> None:
+    """Emit ``message`` once per ``(kind, graph name)`` pair."""
+    key = (kind, name)
+    if key in _WARNED:
+        return
+    _WARNED.add(key)
+    warnings.warn(message, UserWarning, stacklevel=3)
+
+
+def composition_color_matrix(graph: StudyGraph) -> np.ndarray:
+    """Return the composition colour layer, or an empty-width matrix.
+
+    For a MetaMetro bench the layer is the ``composition`` columns already
+    loaded onto the study CGT (only requested when that namespace exists).
+    The ``mock_cgt`` fixture and VAEGbin graphs have no composition layer;
+    this helper returns width 0 and never calls ``filter_colours`` or
+    ``load_bench_*``.
+    """
+    n = int(np.asarray(graph.vae_features).shape[0])
+    if graph.bench_dir is None:
+        return np.zeros((n, 0), dtype=np.uint8)
+    stored = np.asarray(graph.cgt.node_colors)
+    if stored.ndim != 2:
+        return np.zeros((n, 0), dtype=np.uint8)
+    return stored
+
+
 def _features(graph: StudyGraph, arm: Arm, indptr: np.ndarray, indices: np.ndarray) -> np.ndarray:
     base = graph.raw_features if arm.joint else graph.vae_features
     parts = [np.asarray(base, dtype=np.float32)]
     if arm.colors:
-        stored = np.asarray(graph.cgt.node_colors)
+        stored = composition_color_matrix(graph)
         if stored.ndim != 2 or stored.shape[1] == 0:
             stored = composition_colors(graph.raw_features, n_colors=8, seed=0)
         parts.append(stored.astype(np.float32))
@@ -154,10 +185,52 @@ def run_arm(
     *,
     amber: str = "auto",
 ) -> dict[str, float | int | str | bool]:
-    """Train until validation loss stalls, then score bins."""
+    """Train until validation loss stalls, then score bins.
+
+    ``amber: true`` still fails when ``graph.gold`` is missing. ``amber: auto``
+    warns once per graph and leaves ``amber_*`` empty. Fewer than two usable
+    labels (values ``>= 0``) is not scored as ARI 0: the row is
+    ``status=no_labels`` with NaN ARI and F1, and a warning is issued once
+    per graph.
+    """
     mode = amber_mode(amber)
     if mode == "true" and graph.gold is None:
         raise ValueError(f"{graph.name} has no AMBER gold standard (amber: true)")
+    if mode == "auto" and graph.gold is None:
+        _warn_once(
+            "amber-gold",
+            graph.name,
+            f"{graph.name} has no AMBER gold standard; amber_* columns stay empty (amber: auto).",
+        )
+    labels = np.asarray(graph.labels) if graph.labels is not None else np.zeros((0,), dtype=np.int64)
+    usable = 0 if labels.size == 0 else int((labels >= 0).sum())
+    if usable < 2:
+        _warn_once(
+            "labels",
+            graph.name,
+            f"{graph.name} has fewer than two labelled nodes; ARI and F1 are not scored.",
+        )
+        indptr, indices = _topology(graph, arm)
+        return {
+            "dataset": graph.name,
+            "hypothesis": arm.hypothesis,
+            "arm": arm.arm,
+            "seed": seed,
+            "status": "no_labels",
+            "epochs_ran": 0,
+            "stopped_early": False,
+            "best_val_loss": float("nan"),
+            "train_loss": float("nan"),
+            "ari": float("nan"),
+            "f1": float("nan"),
+            "amber_f1": "",
+            "amber_ap": "",
+            "amber_ar": "",
+            "n_nodes": int(graph.cgt.num_nodes),
+            "n_edges": int(indices.shape[0]),
+            "seconds": 0.0,
+            "backend": "cpp",
+        }
     indptr, indices = _topology(graph, arm)
     features = _features(graph, arm, indptr, indices)
     started = time.perf_counter()
@@ -191,6 +264,7 @@ def run_arm(
         "hypothesis": arm.hypothesis,
         "arm": arm.arm,
         "seed": seed,
+        "status": "ok",
         "epochs_ran": fit.epochs_ran,
         "stopped_early": fit.stopped_early,
         "best_val_loss": round(fit.best_val_loss, 6),
