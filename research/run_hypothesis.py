@@ -42,7 +42,7 @@ def write_provenance(dest: Path, hypothesis: str, config: dict) -> None:
     compiler_line = compiler.stdout.splitlines()[0] if compiler.returncode == 0 and compiler.stdout else "g++ not found"
     from paragvae.metametro_path import REQUIRED_METAMETRO, ensure_metametro, metametro_root
 
-    ensure_metametro()
+    installed = ensure_metametro()
     lines = [
         f"hypothesis: {hypothesis}",
         f"command: python research/run_hypothesis.py {hypothesis}",
@@ -55,7 +55,8 @@ def write_provenance(dest: Path, hypothesis: str, config: dict) -> None:
         f"patience: {config['patience']}",
         f"lr: {config['lr']}",
         f"amber: {amber_mode(config.get('amber', 'auto'))}",
-        f"metametro_version: {REQUIRED_METAMETRO}",
+        f"metametro_version: {installed}",
+        f"metametro_pin: {REQUIRED_METAMETRO}",
         f"metametro_commit: {_git_head(metametro_root())}",
         f"paragvae_commit: {_git_head(ROOT)}",
         f"vaegbin_data: {config['vaegbin_data']}",

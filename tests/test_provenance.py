@@ -17,19 +17,34 @@ from paragvae.metametro_path import REQUIRED_METAMETRO  # noqa: E402
 pytestmark = pytest.mark.mandatory
 
 
-def test_provenance_records_config(tmp_path: Path) -> None:
-    """The sidecar names the learning rate and the MetaMetro checkout."""
-    config = {
+def _config() -> dict:
+    return {
         "seeds": [0, 1],
         "max_epochs": 60,
         "patience": 8,
         "lr": 0.05,
         "vaegbin_data": "/data",
     }
-    write_provenance(tmp_path, "loss", config)
+
+
+def test_provenance_records_config(tmp_path: Path) -> None:
+    """The sidecar names the learning rate and the MetaMetro checkout."""
+    write_provenance(tmp_path, "loss", _config())
     text = (tmp_path / "provenance.txt").read_text(encoding="utf-8")
     assert "lr: 0.05" in text
     assert "command: python research/run_hypothesis.py loss" in text
     assert "numpy:" in text
-    assert f"metametro_version: {REQUIRED_METAMETRO}" in text
+    assert "metametro_version:" in text
+    assert f"metametro_pin: {REQUIRED_METAMETRO}" in text
     assert "metametro_commit:" in text
+
+
+def test_provenance_records_installed_version_not_the_pin(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """metametro_version is the installed package, not a copy of the pin."""
+    monkeypatch.setattr("paragvae.metametro_path.ensure_metametro", lambda: "9.9.9")
+    write_provenance(tmp_path, "loss", _config())
+    text = (tmp_path / "provenance.txt").read_text(encoding="utf-8")
+    assert "metametro_version: 9.9.9" in text
+    assert f"metametro_pin: {REQUIRED_METAMETRO}" in text
