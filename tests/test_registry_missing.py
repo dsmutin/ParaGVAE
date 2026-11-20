@@ -59,7 +59,7 @@ def _patch_main(monkeypatch: pytest.MonkeyPatch, tmp_path: Path, paths: dict[str
     import run_registry
 
     monkeypatch.setattr(run_registry, "OUT", tmp_path)
-    monkeypatch.setattr(run_registry, "completion_paths", lambda config: paths)
+    monkeypatch.setattr(run_registry, "completion_paths", lambda config, bench_root=None: paths)
     monkeypatch.setattr(run_registry, "load_config", _tiny_config)
     monkeypatch.setattr(run_registry, "_chart", lambda rows: None)
 

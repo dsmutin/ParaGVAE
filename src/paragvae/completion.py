@@ -9,6 +9,7 @@ table, so the biological arm cannot run on it.
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import numpy as np
@@ -19,12 +20,37 @@ from paragvae.heldout import cdbg_dir, load_heldout_graph
 from paragvae.metametro_path import ensure_metametro
 
 
-def completion_paths(config: dict) -> dict[str, Path]:
+# phage_x10 is a built bench by contract; it must never be recorded as missing.
+MUST_BE_BUILT = ("phage_x10",)
+BENCH_ROOT_ENV = "PARAGVAE_BENCH_ROOT"
+
+
+def completion_bench_root(config: dict | None = None, root: str | Path | None = None) -> Path | None:
+    """Return the explicit MetaMetro checkout root, if one was given.
+
+    Precedence: the ``root`` argument, then ``config['bench_root']``, then
+    the ``PARAGVAE_BENCH_ROOT`` environment variable. There is no silent
+    fallback that invents a root.
+    """
+    if root is not None:
+        return Path(root)
+    if config and config.get("bench_root"):
+        return Path(str(config["bench_root"]))
+    env = os.environ.get(BENCH_ROOT_ENV)
+    if env:
+        return Path(env)
+    return None
+
+
+def completion_paths(config: dict, *, bench_root: str | Path | None = None) -> dict[str, Path]:
     """Resolve the four completion graphs.
 
     A value that is a MetaMetro benchmark name (or a legacy alias) points at
-    that benchbuild directory. Any other value is a path, absolute or relative
-    to the MetaMetro work directory.
+    that benchbuild directory under ``bench_root`` (or the installed MetaMetro
+    checkout). Any other value is a path, absolute or relative to the
+    MetaMetro work directory. A path that does not exist is an error, with a
+    hint to pass ``--bench-root`` or set ``PARAGVAE_BENCH_ROOT``. ``phage_x10``
+    must be a built bench.
     """
     block = config.get("completion")
     if not isinstance(block, dict):
@@ -40,6 +66,11 @@ def completion_paths(config: dict) -> dict[str, Path]:
     from metametro.bench.registry import resolve
     from metametro.errors import ContractError
 
+    root = completion_bench_root(config, bench_root)
+    if root is not None and not root.is_dir():
+        raise FileNotFoundError(
+            f"bench root {root} does not exist; pass --bench-root or set {BENCH_ROOT_ENV}"
+        )
     resolved = {}
     for name in required:
         raw = str(block[name])
@@ -49,8 +80,48 @@ def completion_paths(config: dict) -> dict[str, Path]:
             path = Path(raw)
             resolved[name] = path if path.is_absolute() else work_dir(raw)
             continue
-        resolved[name] = default_outdir(spec)
+        resolved[name] = default_outdir(spec, root=root) if root is not None else default_outdir(spec)
+    for name, path in resolved.items():
+        _require_existing_bench(name, path)
     return resolved
+
+
+def _require_existing_bench(name: str, path: Path) -> None:
+    """Raise if ``path`` is missing, or if a must-be-built bench is not built."""
+    hint = f"Pass --bench-root or set {BENCH_ROOT_ENV} to a MetaMetro checkout that contains the bench."
+    if not Path(path).exists():
+        raise FileNotFoundError(f"{name} was not found at {path}. {hint}")
+    if name not in MUST_BE_BUILT:
+        return
+    status = _manifest_status(path)
+    if status == "built":
+        return
+    if status is None:
+        raise FileNotFoundError(
+            f"{name} must be a built bench, but {path} has no readable manifest status. {hint}"
+        )
+    raise FileNotFoundError(
+        f"{name} must be a built bench, but {path} has manifest status {status!r}. {hint}"
+    )
+
+
+def _manifest_status(root: Path) -> str | None:
+    manifest = Path(root) / "manifest.yaml"
+    if not manifest.is_file():
+        return None
+    try:
+        from paragvae.metametro_path import ensure_metametro
+
+        ensure_metametro()
+        from metametro.tables import read_yaml
+
+        data = read_yaml(manifest)
+    except Exception:
+        return None
+    if not isinstance(data, dict):
+        return None
+    status = str(data.get("status") or "").strip()
+    return status or None
 
 
 # Each example's ``run_example.py`` points at a different NCBI assembly report.

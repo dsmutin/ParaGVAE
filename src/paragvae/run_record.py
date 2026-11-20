@@ -2,16 +2,33 @@
 
 from __future__ import annotations
 
+import csv
 import importlib.metadata
 import json
 import os
 import platform
+import re
 import subprocess
+from datetime import datetime
 from pathlib import Path
 
 from paragvae.metametro_path import REQUIRED_METAMETRO, metametro_root
 
 _PACKAGE_ROOT = Path(__file__).resolve().parents[2]
+
+GENERATED_HEADER = "generated automatically; do not edit"
+COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
+ROW_PROVENANCE_FIELDS = (
+    "dataset",
+    "seed",
+    "arm",
+    "clustering",
+    "paragvae_commit",
+    "dirty",
+    "metametro_version",
+    "metametro_commit",
+    "timestamp",
+)
 
 
 def git_head(folder: Path) -> str | None:
@@ -27,6 +44,72 @@ def git_head(folder: Path) -> str | None:
         return None
     head = done.stdout.strip()
     return head or None
+
+
+def recorded_git_commit(value: str, *, what: str) -> str:
+    """Accept a 40-character lowercase hex digest, or ``unknown``."""
+    text = str(value)
+    if text == "unknown" or COMMIT_RE.fullmatch(text):
+        return text
+    raise ValueError(f"{what} must be a 40-character lowercase hex digest or 'unknown', not {value!r}")
+
+
+def working_tree_dirty(folder: Path) -> bool:
+    """True when ``git status --porcelain`` in ``folder`` is non-empty."""
+    try:
+        done = subprocess.run(
+            ["git", "-C", str(folder), "status", "--porcelain"],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except (OSError, subprocess.CalledProcessError):
+        return False
+    return bool(done.stdout.strip())
+
+
+def row_provenance_record(
+    dataset: str,
+    seed: object,
+    arm: str,
+    clustering: str,
+    *,
+    repo_root: Path | None = None,
+) -> dict[str, str]:
+    """Return one per-row provenance record for the current tree."""
+    root = repo_root or _PACKAGE_ROOT
+    return {
+        "dataset": str(dataset),
+        "seed": str(int(seed)),
+        "arm": str(arm),
+        "clustering": str(clustering),
+        "paragvae_commit": recorded_git_commit(git_head(root) or "unknown", what="paragvae_commit"),
+        "dirty": "true" if working_tree_dirty(root) else "false",
+        "metametro_version": installed_metametro_version(),
+        "metametro_commit": recorded_git_commit(installed_metametro_commit(), what="metametro_commit"),
+        "timestamp": datetime.now().astimezone().isoformat(timespec="seconds"),
+    }
+
+
+def merge_row_provenance(path: Path, new_rows: list[dict]) -> None:
+    """Update ``path`` with ``new_rows``, leaving other rows unchanged."""
+    path = Path(path)
+    existing: dict[tuple[str, str, str, str], dict] = {}
+    if path.is_file():
+        with path.open(encoding="utf-8") as handle:
+            for row in csv.DictReader(handle):
+                key = (row["dataset"], row["seed"], row["arm"], row["clustering"])
+                existing[key] = {field: row.get(field, "") for field in ROW_PROVENANCE_FIELDS}
+    for row in new_rows:
+        record = {field: str(row.get(field, "")) for field in ROW_PROVENANCE_FIELDS}
+        key = (record["dataset"], record["seed"], record["arm"], record["clustering"])
+        existing[key] = record
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=ROW_PROVENANCE_FIELDS, lineterminator="\n")
+        writer.writeheader()
+        for key in sorted(existing):
+            writer.writerow(existing[key])
 
 
 def installed_metametro_version() -> str:
@@ -99,7 +182,9 @@ def write_run_provenance(
         if compiler.returncode == 0 and compiler.stdout
         else "g++ not found"
     )
-    lines = list(header or [])
+    root = repo_root or _PACKAGE_ROOT
+    lines = [GENERATED_HEADER]
+    lines.extend(header or [])
     lines.extend(
         [
             f"command: {command}",
@@ -121,8 +206,9 @@ def write_run_provenance(
         [
             f"metametro_version: {installed_metametro_version()}",
             f"metametro_pin: {REQUIRED_METAMETRO}",
-            f"metametro_commit: {installed_metametro_commit()}",
-            f"paragvae_commit: {git_head(repo_root or _PACKAGE_ROOT) or 'unknown'}",
+            f"metametro_commit: {recorded_git_commit(installed_metametro_commit(), what='metametro_commit')}",
+            f"paragvae_commit: {recorded_git_commit(git_head(root) or 'unknown', what='paragvae_commit')}",
+            f"dirty: {'true' if working_tree_dirty(root) else 'false'}",
         ]
     )
     lines.extend(footer or [])

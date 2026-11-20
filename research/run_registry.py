@@ -12,7 +12,9 @@ Run from the repository root:
 
 from __future__ import annotations
 
+import argparse
 import csv
+import sys
 import traceback
 from pathlib import Path
 
@@ -69,12 +71,28 @@ def write_registry_provenance(dest: Path, config: dict, paths: dict[str, Path] |
     """Write a machine-generated ``provenance.txt`` for a completion run."""
     from paragvae.run_record import write_run_provenance
 
-    footer = []
+    footer = [
+        "score: contig F1 and ARI from paragvae.score. Not AMBER f1_score_seq.",
+        "hidden: 32",
+        "latent: 16",
+        f"hdbscan: {_hdbscan_record()}",
+        (
+            "labels: phage_x10 is the phage_species_5_x10 bench; labels are the "
+            "5-species gold from load_bench_gold_cgt, and unitigs without gold "
+            "are excluded from ARI and from contig F1 recall, but counted in the "
+            "F1 precision denominator. The three assemblies score tax_id from the "
+            "sim row of accessions.tsv, fixed before read generation. A contig "
+            "receives that id when its alignment target is the simulated accession."
+        ),
+    ]
     if paths:
         footer.append("graphs: " + ", ".join(paths))
         for name, path in paths.items():
             footer.append(f"path_{name}: {path}")
-    payload = {key: value for key, value in config.items() if key != "amber"}
+            identity = _bench_identity(path)
+            if identity:
+                footer.append(f"identity_{name}: {identity}")
+    payload = {key: value for key, value in config.items() if key not in {"amber", "bench_root"}}
     write_run_provenance(
         dest,
         command="python research/run_registry.py",
@@ -84,10 +102,55 @@ def write_registry_provenance(dest: Path, config: dict, paths: dict[str, Path] |
     )
 
 
-def main() -> None:
+def _bench_identity(path: Path) -> str | None:
+    digest = Path(path) / "identity.sha256"
+    if digest.is_file():
+        value = digest.read_text(encoding="utf-8").strip().split()[0]
+        return value or None
+    manifest = Path(path) / "manifest.yaml"
+    if not manifest.is_file():
+        return None
+    try:
+        from paragvae.metametro_path import ensure_metametro
+
+        ensure_metametro()
+        from metametro.tables import read_yaml
+
+        data = read_yaml(manifest)
+    except Exception:
+        return None
+    if not isinstance(data, dict) or not data.get("identity"):
+        return None
+    return str(data["identity"])
+
+
+def _hdbscan_record() -> str:
+    try:
+        import hdbscan
+    except ImportError:
+        return "not installed"
+    version = getattr(hdbscan, "__version__", "unknown")
+    source = getattr(hdbscan, "__file__", "unknown")
+    return f"{version} from {source}"
+
+
+def _parse_args(argv: list[str]) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Benchmark the completion arms on the four named graphs.")
+    parser.add_argument(
+        "--bench-root",
+        type=Path,
+        default=None,
+        help="MetaMetro checkout that contains data/bench. Overrides PARAGVAE_BENCH_ROOT. "
+        "Required when the installed MetaMetro checkout does not have the benches.",
+    )
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -> None:
+    args = _parse_args(argv or [])
     _prefer_extracted_hdbscan()
     config = load_config()
-    paths = completion_paths(config)
+    paths = completion_paths(config, bench_root=args.bench_root)
     OUT.mkdir(parents=True, exist_ok=True)
     destination = OUT / "results.csv"
     done = _done(destination)
@@ -95,6 +158,8 @@ def main() -> None:
     if destination.is_file():
         with destination.open(encoding="utf-8") as handle:
             rows.extend(csv.DictReader(handle))
+    computed_records: list[dict] = []
+    computed_ok = 0
     for name, path in paths.items():
         print(f"loading {name}", flush=True)
         if not _bench_allows_missing(path):
@@ -108,7 +173,9 @@ def main() -> None:
             if reason is None:
                 raise
             print(f"  {name} missing: {reason}", flush=True)
-            _upsert(rows, _unloaded_rows(name, path, config["seeds"], reason, done))
+            new_rows = _unloaded_rows(name, path, config["seeds"], reason, done)
+            _upsert(rows, new_rows)
+            computed_records.extend(_records_for(new_rows))
             _write(destination, rows)
             continue
         labels = np.asarray(graph.labels)
@@ -127,10 +194,12 @@ def main() -> None:
                 note = ""
                 if loss == "biological":
                     for method in clusterings:
-                        _upsert(rows, _missing(
+                        missing = _missing(
                             name, seed, arm, architecture, n_layers, loss, method, features.shape[0], n_edges,
                             "biological loss uses Kraken calls, not the pre-generation read taxid, and is not a training input",
-                        ))
+                        )
+                        _upsert(rows, missing)
+                        computed_records.extend(_records_for([missing]))
                     _write(destination, rows)
                     continue
                 assert_training_inputs_hide_labels(
@@ -146,7 +215,9 @@ def main() -> None:
                 except Exception as exc:
                     traceback.print_exc()
                     for method in clusterings:
-                        _upsert(rows, _missing(name, seed, arm, architecture, n_layers, loss, method, features.shape[0], n_edges, f"{type(exc).__name__}: {exc}"))
+                        missing = _missing(name, seed, arm, architecture, n_layers, loss, method, features.shape[0], n_edges, f"{type(exc).__name__}: {exc}")
+                        _upsert(rows, missing)
+                        computed_records.extend(_records_for([missing]))
                     _write(destination, rows)
                     continue
                 usable = labels >= 0
@@ -155,33 +226,40 @@ def main() -> None:
                     try:
                         predicted = _cluster(trained.embedding, method, n_groups, int(seed))
                     except Exception as exc:
-                        _upsert(rows, _missing(name, seed, arm, architecture, n_layers, loss, method, features.shape[0], n_edges, f"{type(exc).__name__}: {exc}"))
+                        missing = _missing(name, seed, arm, architecture, n_layers, loss, method, features.shape[0], n_edges, f"{type(exc).__name__}: {exc}")
+                        _upsert(rows, missing)
+                        computed_records.extend(_records_for([missing]))
                         continue
                     scores = evaluate(trained.embedding, labels, method, int(seed), predicted=predicted)
-                    _upsert(
-                        rows,
-                        {
-                            "dataset": name,
-                            "seed": int(seed),
-                            "arm": arm,
-                            "architecture": architecture,
-                            "n_layers": n_layers,
-                            "loss": loss,
-                            "clustering": method,
-                            "status": "ok",
-                            "f1": f"{float(scores['f1']):.6f}",
-                            "ari": f"{float(scores['ari']):.6f}",
-                            "epochs": trained.epochs_ran,
-                            "stopped_early": int(trained.stopped_early),
-                            "n_nodes": features.shape[0],
-                            "n_edges": n_edges,
-                            "note": note,
-                        }
-                    )
+                    ok_row = {
+                        "dataset": name,
+                        "seed": int(seed),
+                        "arm": arm,
+                        "architecture": architecture,
+                        "n_layers": n_layers,
+                        "loss": loss,
+                        "clustering": method,
+                        "status": "ok",
+                        "f1": f"{float(scores['f1']):.6f}",
+                        "ari": f"{float(scores['ari']):.6f}",
+                        "epochs": trained.epochs_ran,
+                        "stopped_early": int(trained.stopped_early),
+                        "n_nodes": features.shape[0],
+                        "n_edges": n_edges,
+                        "note": note,
+                    }
+                    _upsert(rows, ok_row)
+                    computed_records.extend(_records_for([ok_row]))
+                    computed_ok += 1
                 _write(destination, rows)
                 print(f"  {name} seed {seed} {arm} epochs {trained.epochs_ran}", flush=True)
     _chart(rows)
-    write_registry_provenance(OUT, config, paths)
+    if computed_records:
+        from paragvae.run_record import merge_row_provenance
+
+        merge_row_provenance(OUT / "row_provenance.csv", computed_records)
+    if computed_ok:
+        write_registry_provenance(OUT, config, paths)
     print(f"wrote {destination}", flush=True)
 
 
@@ -226,6 +304,25 @@ def _cluster(embedding: np.ndarray, method: str, n_groups: int, seed: int) -> np
     if method == "hdbscan":
         return cluster_hdbscan(embedding)
     raise ValueError(method)
+
+
+def _records_for(rows) -> list[dict]:
+    from paragvae.run_record import row_provenance_record
+
+    if isinstance(rows, dict):
+        rows = [rows]
+    records = []
+    for row in rows:
+        records.append(
+            row_provenance_record(
+                row["dataset"],
+                row["seed"],
+                row["arm"],
+                row["clustering"],
+                repo_root=ROOT,
+            )
+        )
+    return records
 
 
 def _missing(dataset, seed, arm, architecture, n_layers, loss, method, n_nodes, n_edges, note) -> dict:
@@ -457,4 +554,4 @@ def _chart(rows: list[dict]) -> None:
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])

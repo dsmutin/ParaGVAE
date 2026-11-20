@@ -1,18 +1,17 @@
-command: python research/run_registry.py
-python: 3.12.14
-numpy: 2.5.3
-scikit-learn: 1.9.1
-compiler: x86_64-conda-linux-gnu-g++ (conda-forge gcc 16.2.0-7) 16.2.0
-seeds: [0, 1]
-max_epochs: 60
-patience: 8
-lr: 0.05
-metametro_version: 0.22.1
-metametro_pin: 0.22.1
-metametro_commit: fdd0519d4a7a7d20be218d63da55ddfcdf1b316a
-paragvae_commit: 40ed41d72b9dc3e41af5c2551c87621c17df8a14
-graphs: phage_x10, heldout_genera, low75half, half100half
-path_phage_x10: /workspace/tests_outs/paragvae-compat/mm-0.22.1/data/bench/phage_species_5_x10/megahit/reads4000_k21
-path_heldout_genera: /workspace/tests_outs/paragvae-compat/mm-0.22.1/data/bench/bacteria_species_20_heldout/megahit/reads100000
-path_low75half: /workspace/tests_outs/paragvae-compat/mm-0.22.1/data/bench/3domain_genus_75_half/megahit/reads100000
-path_half100half: /workspace/tests_outs/paragvae-compat/mm-0.22.1/data/bench/4domain_family_100_half/megahit/reads100000
+generated automatically; do not edit
+
+# Historical attribution of benchmark/registry/results.csv
+# This file is not the output of a fresh training run on the current tree.
+# A resumed run that computes no new ok rows must not overwrite it.
+
+note: the 22 phage_x10 status=ok rows were trained on paragvae commit 7fe392a812ee70cdf49aa6481cd248fdf1f56141 with MetaMetro 0.22.1 (fdd0519d4a7a7d20be218d63da55ddfcdf1b316a). Reviewer 2 verified those 22 rows are byte-identical on MetaMetro 0.24.0 (f268a53a8d0192c478ffda089ffbc17f99ed6a65); the phage identity 78121c1b05a5814bfc17ac3b7650ed5223a0f584cfada24e9224b7ba0364564c is unchanged. Per-row records are in row_provenance.csv.
+
+command: PYTHONPATH=src python research/run_registry.py
+score: contig F1 and ARI from paragvae.score. Not AMBER f1_score_seq.
+budget: configs/datasets.yaml seeds [0, 1], max_epochs 60, patience 8, lr 0.05, hidden 32, latent 16
+hdbscan: conda-forge 0.8.44 build py312h0ec8046_1, imported from the extracted package because the home disk quota blocked conda install
+graphs: phage_x10, heldout_genera, low75half, half100half as listed in configs/datasets.yaml
+labels: phage_x10 is the phage_species_5_x10 bench (identity 78121c1b05a5814bfc17ac3b7650ed5223a0f584cfada24e9224b7ba0364564c); labels are the 5-species gold from load_bench_gold_cgt, and 80 unitigs without gold are excluded from ARI and from contig F1 recall, but counted in the F1 precision denominator. The three assemblies score tax_id from the sim row of accessions.tsv, fixed before read generation. A contig receives that id when its alignment target is the simulated accession.
+biological loss: the recorded biological rows were trained on Kraken calls. That is a prediction, not the pre-generation taxid, and the runner no longer trains that arm.
+edge features: a width-0 matrix is treated as unweighted
+heldout_genera, low75half, half100half are contract-only builds, so their rows are status=missing.
