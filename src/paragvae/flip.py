@@ -2,7 +2,6 @@
 
 from paragvae.models.flip import (
     EdgeGraph,
-    cluster_embeddings,
     edge_line_graph,
     infer_nodes_from_edges,
     train_edge_graph,

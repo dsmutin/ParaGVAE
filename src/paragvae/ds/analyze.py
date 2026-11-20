@@ -16,10 +16,9 @@ import pandas as pd
 from scipy import sparse
 from scipy.sparse.csgraph import connected_components
 from scipy.stats import spearmanr
-from sklearn.metrics import adjusted_rand_score
 
 from paragvae.native import train_gcn_native
-from paragvae.score import contig_f1
+from paragvae.score import evaluate
 from paragvae.study import _degree_and_clustering
 from paragvae.train import undirected_edges
 
@@ -294,11 +293,12 @@ def analyze(
         errors.append(error)
         if seed == seeds[0]:
             cluster0 = clusters
+        scored = evaluate(fit.embedding, labels, "kmeans", seed, predicted=clusters)
         scores.append(
             {
                 "seed": seed,
-                "f1": contig_f1(labels, clusters),
-                "ari": float(adjusted_rand_score(labels, clusters)),
+                "f1": float(scored["f1"]),
+                "ari": float(scored["ari"]),
                 "error_rate": float(error.mean()),
                 "epochs_ran": fit.epochs_ran,
                 "stopped_early": fit.stopped_early,

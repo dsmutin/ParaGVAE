@@ -312,21 +312,3 @@ def infer_nodes_from_edges(
         present = counts > 0
         pooled[present] /= counts[present, None]
     return pooled.astype(np.float32)
-
-
-def cluster_embeddings(embedding: np.ndarray, n_groups: int, seed: int) -> np.ndarray:
-    """Cluster embedding rows with k-means.
-
-    ``n_groups`` is the caller's oracle ``k``, the same count the node-level
-    arms take from ground-truth genomes. ``KMeans`` uses ``n_init=5``.
-    """
-    from sklearn.cluster import KMeans
-
-    matrix = np.asarray(embedding, dtype=np.float64)
-    if matrix.ndim != 2 or matrix.shape[0] == 0:
-        raise ValueError("embedding must be a non-empty 2-d array")
-    groups = int(n_groups)
-    if groups < 1 or groups > matrix.shape[0]:
-        raise ValueError(f"n_groups must be between 1 and {matrix.shape[0]}")
-    model = KMeans(n_clusters=groups, random_state=int(seed), n_init=5)
-    return np.asarray(model.fit_predict(matrix))

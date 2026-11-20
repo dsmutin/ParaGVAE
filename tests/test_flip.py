@@ -7,8 +7,8 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+from paragvae.cluster_methods import cluster_kmeans
 from paragvae.flip import (
-    cluster_embeddings,
     edge_line_graph,
     infer_nodes_from_edges,
     train_edge_graph,
@@ -152,13 +152,13 @@ def test_train_edge_graph_on_a_ring(tmp_path: Path) -> None:
     assert np.isfinite(result.embedding).all()
 
 
-def test_cluster_embeddings_separates_two_groups() -> None:
+def test_cluster_kmeans_separates_two_groups() -> None:
     """Oracle ``k`` is passed through to k-means with ``n_init=5``."""
     embedding = np.array(
         [[0.0, 0.0], [0.1, -0.1], [5.0, 5.0], [5.1, 4.9]],
         dtype=np.float64,
     )
-    labels = cluster_embeddings(embedding, n_groups=2, seed=0)
+    labels = cluster_kmeans(embedding, n_groups=2, seed=0)
     assert labels.shape == (4,)
     assert labels[0] == labels[1]
     assert labels[2] == labels[3]

@@ -28,9 +28,8 @@ from paragvae.provenance_checks import (
     simulation_tax_ids,
 )
 from paragvae.flip import edge_line_graph, infer_nodes_from_edges
-from paragvae.score import contig_f1
+from paragvae.score import evaluate
 from paragvae.suite import ROOT, load_config
-from sklearn.metrics import adjusted_rand_score
 
 OUT = ROOT / "benchmark" / "registry"
 FIELDS = (
@@ -126,7 +125,7 @@ def main() -> None:
                     except Exception as exc:
                         rows.append(_missing(name, seed, arm, architecture, n_layers, loss, method, features.shape[0], n_edges, f"{type(exc).__name__}: {exc}"))
                         continue
-                    ari = 0.0 if int(usable.sum()) < 2 else float(adjusted_rand_score(labels[usable], predicted[usable]))
+                    scores = evaluate(trained.embedding, labels, method, int(seed), predicted=predicted)
                     rows.append(
                         {
                             "dataset": name,
@@ -137,8 +136,8 @@ def main() -> None:
                             "loss": loss,
                             "clustering": method,
                             "status": "ok",
-                            "f1": f"{contig_f1(labels, predicted):.6f}",
-                            "ari": f"{ari:.6f}",
+                            "f1": f"{float(scores['f1']):.6f}",
+                            "ari": f"{float(scores['ari']):.6f}",
                             "epochs": trained.epochs_ran,
                             "stopped_early": int(trained.stopped_early),
                             "n_nodes": features.shape[0],

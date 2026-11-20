@@ -62,13 +62,28 @@ def cluster_embedding(embedding: np.ndarray, labels: np.ndarray, method: str, se
     raise ValueError(f"unknown clustering method {method}")
 
 
-def evaluate(embedding: np.ndarray, labels: np.ndarray, method: str, seed: int) -> dict[str, float]:
-    """Return ARI and contig F1 for one clustering of ``embedding``."""
+def evaluate(
+    embedding: np.ndarray,
+    labels: np.ndarray,
+    method: str,
+    seed: int,
+    *,
+    predicted: np.ndarray | None = None,
+) -> dict[str, float | np.ndarray]:
+    """Return ARI and contig F1 for one clustering of ``embedding``.
+
+    Pass ``predicted`` to score an already computed clustering, as the
+    registry and the DS analysis do. Otherwise the rows are clustered with
+    ``method``. ARI ignores labels below 0; contig F1 is unchanged.
+    """
     labels = np.asarray(labels)
-    predicted = cluster_embedding(embedding, labels, method, seed)
+    if predicted is None:
+        predicted = cluster_embedding(embedding, labels, method, seed)
+    else:
+        predicted = np.asarray(predicted)
     usable = labels >= 0
     if int(usable.sum()) < 2:
         ari = 0.0
     else:
         ari = float(adjusted_rand_score(labels[usable], predicted[usable]))
-    return {"ari": ari, "f1": contig_f1(labels, predicted)}
+    return {"ari": ari, "f1": contig_f1(labels, predicted), "predicted": predicted}

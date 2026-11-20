@@ -62,7 +62,11 @@ _NORMALPDF = _DELTA_X * _PDF_RAW
 
 
 def cluster_kmeans(embedding: np.ndarray, n_groups: int, seed: int) -> np.ndarray:
-    """K-means. ``n_groups`` is the number of ground-truth classes."""
+    """K-means. ``n_groups`` is the number of ground-truth classes.
+
+    ``k`` is clamped to ``[2, n_nodes]``. This is the clustering helper
+    previously also exposed as ``flip.cluster_embeddings``.
+    """
     matrix = np.asarray(embedding, dtype=np.float64)
     groups = max(2, min(int(n_groups), matrix.shape[0]))
     return KMeans(n_clusters=groups, random_state=seed, n_init=5).fit_predict(matrix).astype(np.int32)

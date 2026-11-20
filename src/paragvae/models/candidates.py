@@ -2,7 +2,6 @@
 
 ``colour_assignment`` and ``published_colouring`` read the tensor colour
 mask. ``feature_kmeans`` clusters features and ignores the graph.
-``vaegcn_kmeans`` and ``vaegcn_agglomerative`` cluster a GCN embedding.
 ``patch_transformer_gcn`` mixes feature slices, then trains the GCN on that
 matrix. None of these copies an evaluation taxid into a colour.
 """
@@ -46,17 +45,6 @@ def feature_kmeans(features: np.ndarray, labels: np.ndarray, seed: int) -> np.nd
     if matrix.ndim != 2 or matrix.shape[0] == 0:
         raise ValueError(f"features must be a non-empty matrix, got shape {matrix.shape}")
     return cluster_embedding(matrix, labels, "kmeans", seed)
-
-
-def vaegcn_kmeans(embedding: np.ndarray, labels: np.ndarray, seed: int) -> np.ndarray:
-    """K-means on a GCN embedding. ``k`` is the number of evaluation labels."""
-    return cluster_embedding(embedding, labels, "kmeans", seed)
-
-
-def vaegcn_agglomerative(embedding: np.ndarray, labels: np.ndarray, seed: int) -> np.ndarray:
-    """Average-linkage clustering of a GCN embedding."""
-    return cluster_embedding(embedding, labels, "agglomerative", seed)
-
 
 def patch_tokens(features: np.ndarray, patch: int = 4) -> np.ndarray:
     """Mix feature slices with one attention block. No learned weights."""

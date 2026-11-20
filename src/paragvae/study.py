@@ -7,13 +7,12 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
-from sklearn.metrics import adjusted_rand_score
 
 from paragvae.amber import score_bins
 from paragvae.graphs import StudyGraph, composition_colors
 from paragvae.metametro_path import training_arrays
 from paragvae.native import train_gcn_native
-from paragvae.score import cluster_embedding, contig_f1
+from paragvae.score import evaluate
 from paragvae.train import knn_adjacency
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -178,13 +177,8 @@ def run_arm(
         lr=arm.lr,
         work=job,
     )
-    predicted = cluster_embedding(fit.embedding, graph.labels, arm.clustering, seed)
-    labels = np.asarray(graph.labels)
-    usable = labels >= 0
-    if int(usable.sum()) < 2:
-        ari = 0.0
-    else:
-        ari = float(adjusted_rand_score(labels[usable], predicted[usable]))
+    scores = evaluate(fit.embedding, graph.labels, arm.clustering, seed)
+    predicted = scores["predicted"]
     if mode != "false" and graph.gold is not None:
         amber = score_bins(graph.sequence_ids, predicted, graph.gold, job / "amber_stage")
         amber_f1: float | str = round(amber["amber_f1"], 6)
@@ -201,8 +195,8 @@ def run_arm(
         "stopped_early": fit.stopped_early,
         "best_val_loss": round(fit.best_val_loss, 6),
         "train_loss": round(fit.train_loss, 6),
-        "ari": round(ari, 6),
-        "f1": round(contig_f1(labels, predicted), 6),
+        "ari": round(float(scores["ari"]), 6),
+        "f1": round(float(scores["f1"]), 6),
         "amber_f1": amber_f1,
         "amber_ap": amber_ap,
         "amber_ar": amber_ar,
