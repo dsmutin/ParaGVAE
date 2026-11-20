@@ -5,12 +5,14 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+import metametro
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "research"))
 
 from run_hypothesis import write_provenance  # noqa: E402
+from run_registry import write_registry_provenance  # noqa: E402
 
 from paragvae.metametro_path import REQUIRED_METAMETRO  # noqa: E402
 
@@ -48,3 +50,51 @@ def test_provenance_records_installed_version_not_the_pin(
     text = (tmp_path / "provenance.txt").read_text(encoding="utf-8")
     assert "metametro_version: 9.9.9" in text
     assert f"metametro_pin: {REQUIRED_METAMETRO}" in text
+
+
+def test_provenance_version_tracks_metametro_dunder_version(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Patching metametro.__version__ (not ensure_metametro) must show up in the sidecar.
+
+    ensure_metametro is left unpatched, so a mutation that returns the pin
+    instead of metametro.__version__ fails when the two differ.
+    """
+    monkeypatch.setattr(metametro, "__version__", "9.8.7")
+    write_provenance(tmp_path, "loss", _config())
+    text = (tmp_path / "provenance.txt").read_text(encoding="utf-8")
+    assert f"metametro_version: 9.8.7" in text
+    assert f"metametro_pin: {REQUIRED_METAMETRO}" in text
+    assert "metametro_version: 9.8.7" in text.split("metametro_pin")[0]
+
+
+def test_registry_provenance_tracks_metametro_dunder_version(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The registry sidecar uses the same installed-version helper."""
+    monkeypatch.setattr(metametro, "__version__", "9.8.7")
+    write_registry_provenance(
+        tmp_path,
+        _config(),
+        paths={"phage_x10": tmp_path / "phage"},
+    )
+    text = (tmp_path / "provenance.txt").read_text(encoding="utf-8")
+    assert "command: python research/run_registry.py" in text
+    assert "metametro_version: 9.8.7" in text
+    assert f"metametro_pin: {REQUIRED_METAMETRO}" in text
+    assert "path_phage_x10:" in text
+
+
+def test_registry_provenance_records_real_install(tmp_path: Path) -> None:
+    """Unpatched, the registry sidecar matches the installed package and pin."""
+    write_registry_provenance(tmp_path, _config())
+    text = (tmp_path / "provenance.txt").read_text(encoding="utf-8")
+    assert f"metametro_version: {metametro.__version__}" in text
+    assert f"metametro_pin: {REQUIRED_METAMETRO}" in text
+    assert "metametro_commit: unknown" not in text
+    assert "metametro_commit:" in text
+    # The editable 0.22.1 checkout is fdd0519…; accept a full or short hash.
+    line = next(part for part in text.splitlines() if part.startswith("metametro_commit:"))
+    commit = line.split(":", 1)[1].strip()
+    assert commit != "unknown"
+    assert len(commit) >= 7

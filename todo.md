@@ -18,6 +18,7 @@ Scaffold checklist. Check a box only after mandatory tests pass.
 - [x] ``benchmark/registry/results.csv``: ``phage_x10`` recomputed on the rebuilt bench gold (version 0.7.13). ``heldout_genera``, ``low75half``, and ``half100half`` were not recomputed: they are not built on the box, so their rows stay ``status=missing`` (#1197)
 - [x] Registry missing-row policy: only an unbuilt bench or a bench without ``ground_truth/`` may be recorded as missing; a rerun recomputes missing rows; F1 wording for unlabelled nodes (version 0.7.16)
 - [x] Provenance records the installed MetaMetro version and the pin separately (version 0.7.14)
+- [x] Provenance reads `metametro.__version__` unmocked and `run_registry` writes `benchmark/registry/provenance.txt` (version 0.7.17)
 - [x] Colouring arm: ``kmeans_raw`` plus warning for graphs without a bench; a bench without composition fails (version 0.7.15)
 - [x] Edge line-graph flip (train and infer)
 - [x] Decaying label leakage from an observed-node mask

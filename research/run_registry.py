@@ -65,6 +65,25 @@ ARMS = (
 )
 
 
+def write_registry_provenance(dest: Path, config: dict, paths: dict[str, Path] | None = None) -> None:
+    """Write a machine-generated ``provenance.txt`` for a completion run."""
+    from paragvae.run_record import write_run_provenance
+
+    footer = []
+    if paths:
+        footer.append("graphs: " + ", ".join(paths))
+        for name, path in paths.items():
+            footer.append(f"path_{name}: {path}")
+    payload = {key: value for key, value in config.items() if key != "amber"}
+    write_run_provenance(
+        dest,
+        command="python research/run_registry.py",
+        config=payload,
+        footer=footer,
+        repo_root=ROOT,
+    )
+
+
 def main() -> None:
     _prefer_extracted_hdbscan()
     config = load_config()
@@ -158,6 +177,7 @@ def main() -> None:
                 _write(destination, rows)
                 print(f"  {name} seed {seed} {arm} epochs {trained.epochs_ran}", flush=True)
     _chart(rows)
+    write_registry_provenance(OUT, config, paths)
     print(f"wrote {destination}", flush=True)
 
 

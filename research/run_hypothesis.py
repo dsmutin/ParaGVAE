@@ -4,9 +4,6 @@
 from __future__ import annotations
 
 import csv
-import os
-import platform
-import subprocess
 import sys
 from pathlib import Path
 
@@ -19,50 +16,20 @@ from paragvae.study import amber_mode, arm_is_redundant, run_arm  # noqa: E402
 from paragvae.suite import arms_for, load_config, load_graphs  # noqa: E402
 
 
-def _git_head(folder: Path) -> str:
-    try:
-        done = subprocess.run(
-            ["git", "-C", str(folder), "rev-parse", "HEAD"],
-            check=True,
-            capture_output=True,
-            text=True,
-        )
-    except (OSError, subprocess.CalledProcessError):
-        return "not a git checkout"
-    return done.stdout.strip()
-
-
 def write_provenance(dest: Path, hypothesis: str, config: dict) -> None:
     """Record the command, package versions, and checkouts next to a benchmark."""
-    import numpy
-    import sklearn
+    from paragvae.run_record import write_run_provenance
 
-    compiler_bin = os.environ.get("CXX") or "g++"
-    compiler = subprocess.run([compiler_bin, "--version"], capture_output=True, text=True)
-    compiler_line = compiler.stdout.splitlines()[0] if compiler.returncode == 0 and compiler.stdout else "g++ not found"
-    from paragvae.metametro_path import REQUIRED_METAMETRO, ensure_metametro, metametro_root
-
-    installed = ensure_metametro()
-    lines = [
-        f"hypothesis: {hypothesis}",
-        f"command: python research/run_hypothesis.py {hypothesis}",
-        f"python: {platform.python_version()}",
-        f"numpy: {numpy.__version__}",
-        f"scikit-learn: {sklearn.__version__}",
-        f"compiler: {compiler_line}",
-        f"seeds: {config['seeds']}",
-        f"max_epochs: {config['max_epochs']}",
-        f"patience: {config['patience']}",
-        f"lr: {config['lr']}",
-        f"amber: {amber_mode(config.get('amber', 'auto'))}",
-        f"metametro_version: {installed}",
-        f"metametro_pin: {REQUIRED_METAMETRO}",
-        f"metametro_commit: {_git_head(metametro_root())}",
-        f"paragvae_commit: {_git_head(ROOT)}",
-        f"vaegbin_data: {config['vaegbin_data']}",
-    ]
-    dest.mkdir(parents=True, exist_ok=True)
-    (dest / "provenance.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    payload = dict(config)
+    payload.setdefault("amber", "auto")
+    write_run_provenance(
+        dest,
+        command=f"python research/run_hypothesis.py {hypothesis}",
+        config=payload,
+        header=[f"hypothesis: {hypothesis}"],
+        footer=[f"vaegbin_data: {config['vaegbin_data']}"],
+        repo_root=ROOT,
+    )
 
 
 def main(hypothesis: str, graphs=None, config=None) -> Path:
