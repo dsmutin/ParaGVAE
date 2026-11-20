@@ -7,6 +7,7 @@ Scaffold checklist. Check a box only after mandatory tests pass.
 - [x] AMBER ``f1_score_seq`` stage on binning output (version 0.2.0)
 - [x] Optional AMBER on the hypothesis grid (``amber`` flag, version 0.7.3)
 - [x] Shared Adam, z-score, and init in ``paragvae.optim`` (version 0.7.4)
+- [x] ``completion_paths`` only treats a failed ``resolve`` as a filesystem path (version 0.7.5)
 - [x] Edge line-graph flip (train and infer)
 - [x] Decaying label leakage from an observed-node mask
 - [x] SSL plan plus supervised class-weighted GCN

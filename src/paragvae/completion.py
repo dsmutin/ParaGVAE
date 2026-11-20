@@ -44,11 +44,12 @@ def completion_paths(config: dict) -> dict[str, Path]:
     for name in required:
         raw = str(block[name])
         try:
-            resolved[name] = default_outdir(resolve(raw))
-            continue
+            spec = resolve(raw)
         except ContractError:
             path = Path(raw)
             resolved[name] = path if path.is_absolute() else work_dir(raw)
+            continue
+        resolved[name] = default_outdir(spec)
     return resolved
 
 
