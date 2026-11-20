@@ -21,6 +21,8 @@ VAMB is not re-run. Contig F1 will not match `results_final_summary.md`. AMBER i
 | `research/multiscale` | Degree and local clustering, self-loops excluded | `latent_only` vs `degree_clustering` |
 | `research/clustering` | Same embedding, two clusterers | `kmeans` vs `agglomerative` |
 
+Each `results.csv` row includes `coloring_source`: `""` when the arm does not use colours, `composition_kmeans` when a bench supplies that MetaMetro layer, and `kmeans_raw` when the graph has no bench (the `mock_cgt` fixture and VAEGbin bundles) and the colouring arm computes k-means on raw features. A bench without the composition layer stops; it does not fall back.
+
 `diff_c` / `proxy` use `all_different.npy` (single-copy marker pairs). They do not use genome ids. The bubble fixture has no marker pairs, so those two losses match `standard` there.
 
 ## Edge line-graph flip

@@ -151,9 +151,8 @@ def composition_color_matrix(graph: StudyGraph) -> np.ndarray:
 
     For a MetaMetro bench the layer is the ``composition`` columns already
     loaded onto the study CGT (only requested when that namespace exists).
-    The ``mock_cgt`` fixture and VAEGbin graphs have no composition layer;
-    this helper returns width 0 and never calls ``filter_colours`` or
-    ``load_bench_*``.
+    The ``mock_cgt`` fixture and VAEGbin graphs have no bench; this helper
+    returns width 0 and never calls ``filter_colours`` or ``load_bench_*``.
     """
     n = int(np.asarray(graph.vae_features).shape[0])
     if graph.bench_dir is None:
@@ -167,31 +166,38 @@ def composition_color_matrix(graph: StudyGraph) -> np.ndarray:
 def coloring_source(graph: StudyGraph, arm: Arm) -> str:
     """Name the colour layer an arm trains on.
 
-    ``composition_kmeans`` is the stored MetaMetro layer. ``kmeans_fallback``
-    means the graph has no such layer and ``_features`` computes k-means
-    colours from the raw features instead. Arms without colours get ``""``.
+    ``composition_kmeans`` is the stored MetaMetro layer on a bench.
+    ``kmeans_raw`` means the graph has no bench and ``_features`` computes
+    k-means colours from the raw features. Arms without colours get ``""``.
+    A bench that lacks the composition layer raises; it does not fall back.
     """
     if not arm.colors:
         return ""
-    stored = composition_color_matrix(graph)
-    if stored.ndim != 2 or stored.shape[1] == 0:
-        return "kmeans_fallback"
-    return "composition_kmeans"
+    if graph.bench_dir is not None:
+        stored = composition_color_matrix(graph)
+        if stored.ndim != 2 or stored.shape[1] == 0:
+            raise ValueError(
+                f"{graph.name} is a MetaMetro bench without a composition_kmeans "
+                "colour layer; the colouring arm does not fall back to k-means."
+            )
+        return "composition_kmeans"
+    return "kmeans_raw"
 
 
 def _features(graph: StudyGraph, arm: Arm, indptr: np.ndarray, indices: np.ndarray) -> np.ndarray:
     base = graph.raw_features if arm.joint else graph.vae_features
     parts = [np.asarray(base, dtype=np.float32)]
     if arm.colors:
-        stored = composition_color_matrix(graph)
-        if coloring_source(graph, arm) == "kmeans_fallback":
+        if coloring_source(graph, arm) == "kmeans_raw":
             _warn_once(
                 "kmeans-fallback",
                 graph.name,
-                f"{graph.name} has no composition_kmeans colour layer; "
-                "the colouring arm uses k-means colours from raw features (coloring_source=kmeans_fallback).",
+                f"{graph.name} has no bench; "
+                "the colouring arm uses k-means colours from raw features (coloring_source=kmeans_raw).",
             )
             stored = composition_colors(graph.raw_features, n_colors=8, seed=0)
+        else:
+            stored = composition_color_matrix(graph)
         parts.append(stored.astype(np.float32))
     if arm.multiscale:
         parts.append(_degree_and_clustering(indptr, indices))

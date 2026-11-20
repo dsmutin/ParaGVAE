@@ -74,7 +74,7 @@ def test_coloring_arm_uses_only_composition(bubble_strain_2: Path) -> None:
 def test_mock_and_vaegbin_skip_missing_composition(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Graphs without a composition namespace use the k-means fallback, not filter_colours."""
+    """Graphs without a bench use k-means on raw features, not filter_colours."""
     ensure_metametro()
     from metametro.contracts.colour_filter import filter_colours
     from metametro.bench import load_bench_cgt, load_bench_cdbg, load_bench_cfa

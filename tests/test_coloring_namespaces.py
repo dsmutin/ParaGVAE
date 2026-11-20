@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 
 from paragvae import study
-from paragvae.graphs import composition_colors, load_metametro_bench
+from paragvae.graphs import composition_colors, load_metametro_bench, load_metametro_bubble
 from paragvae.metametro_path import ensure_metametro
 from paragvae.study import Arm, _features, _topology, coloring_source, composition_color_matrix, run_arm
 
@@ -85,23 +85,48 @@ def test_loader_keeps_only_composition_columns(foreign_bench: Path) -> None:
     assert np.array_equal(features[:, -len(keep) :], stored.astype(np.float32))
 
 
-def test_missing_composition_falls_back_with_warning_and_flag(
-    no_composition_bench: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+def test_bench_without_composition_does_not_fall_back(
+    no_composition_bench: Path, tmp_path: Path
 ) -> None:
-    """No composition layer: colours are zeroed, k-means is used, a warning fires once, the row says so."""
-    monkeypatch.setattr(study, "_WARNED", set())
+    """A bench that lacks composition_kmeans fails on the colouring arm, not k-means."""
     graph = load_metametro_bench(no_composition_bench)
     assert np.asarray(graph.cgt.node_colors).shape == (graph.cgt.num_nodes, 0)
     assert list(graph.cgt.color_ids) == []
     assert composition_color_matrix(graph).shape[1] == 0
+    assert graph.bench_dir == no_composition_bench
 
     arm = Arm("coloring", "cgt_colors", colors=True, max_epochs=1, patience=1)
-    assert coloring_source(graph, arm) == "kmeans_fallback"
+    with pytest.raises(ValueError, match="does not fall back to k-means"):
+        coloring_source(graph, arm)
     indptr, indices = _topology(graph, arm)
-    with pytest.warns(UserWarning, match="kmeans_fallback"):
+    with pytest.raises(ValueError, match="does not fall back to k-means"):
+        _features(graph, arm, indptr, indices)
+    with pytest.raises(ValueError, match="does not fall back to k-means"):
+        run_arm(graph, arm, seed=0, work=tmp_path / "job", amber="false")
+
+    plain = Arm("coloring", "uncoloured", max_epochs=1, patience=1)
+    assert coloring_source(graph, plain) == ""
+    row = run_arm(graph, plain, seed=0, work=tmp_path / "plain", amber="false")
+    assert row["coloring_source"] == ""
+
+
+def test_graph_without_a_bench_uses_kmeans_raw(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """mock_cgt / VAEGbin graphs warn once and record coloring_source=kmeans_raw."""
+    monkeypatch.setattr(study, "_WARNED", set())
+    graph = load_metametro_bubble()
+    assert graph.bench_dir is None
+    assert composition_color_matrix(graph).shape[1] == 0
+
+    arm = Arm("coloring", "cgt_colors", colors=True, max_epochs=1, patience=1)
+    assert coloring_source(graph, arm) == "kmeans_raw"
+    indptr, indices = _topology(graph, arm)
+    with pytest.warns(UserWarning, match="coloring_source=kmeans_raw"):
         features = _features(graph, arm, indptr, indices)
     fallback = composition_colors(graph.raw_features, n_colors=8, seed=0)
     assert features.shape[1] == graph.vae_features.shape[1] + fallback.shape[1]
+    assert np.array_equal(features[:, -fallback.shape[1] :], fallback.astype(np.float32))
 
     import warnings
 
@@ -109,7 +134,7 @@ def test_missing_composition_falls_back_with_warning_and_flag(
         warnings.simplefilter("error")
         _features(graph, arm, indptr, indices)
         row = run_arm(graph, arm, seed=0, work=tmp_path / "job", amber="false")
-    assert row["coloring_source"] == "kmeans_fallback"
+    assert row["coloring_source"] == "kmeans_raw"
 
     plain = Arm("coloring", "uncoloured", max_epochs=1, patience=1)
     assert coloring_source(graph, plain) == ""

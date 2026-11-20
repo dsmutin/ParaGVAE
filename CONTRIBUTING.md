@@ -88,9 +88,17 @@ Train and score on a MetaMetro coloured graph tensor (`Cgt`). Do not keep a seco
 
 Do not add a new colouring method in this repository. Add it in MetaMetro and open a pull request there.
 
-Do not mock a colouring. The colouring arm (`cgt_colors`) uses only the `composition` namespace, loaded with `load_bench_cgt(..., namespaces=namespaces_for(("composition_kmeans",)))` when that namespace is present on the bench. It never asks `filter_colours` / `load_bench_*` for a namespace the graph lacks. `composition_colors` is a MetaMetro k-means helper used when the composition layer is empty, including the `mock_cgt` fixture and VAEGbin graphs.
+Do not mock a colouring. The colouring arm (`cgt_colors`) uses only the `composition` namespace, loaded with `load_bench_cgt(..., namespaces=namespaces_for(("composition_kmeans",)))` when that namespace is present on the bench. It never asks `filter_colours` / `load_bench_*` for a namespace the graph lacks. `composition_colors` is a MetaMetro k-means helper used on graphs that have no bench (`mock_cgt` and VAEGbin bundles). A bench that lacks the composition layer is an error; it does not fall back to k-means.
 
 Check that a selected colouring exists on the bench ToCUMG before training. If the colour matrix is empty and you expected a layer, stop.
+
+`run_arm` records `coloring_source` on every row:
+
+| Value | Meaning |
+|---|---|
+| `""` | The arm does not use colours |
+| `composition_kmeans` | Stored MetaMetro composition layer on a bench |
+| `kmeans_raw` | No bench; k-means colours from raw features. Warns once (`kmeans-fallback`) |
 
 Use `load_bench_cgt(..., namespaces=...)` to keep the layers an arm needs, after checking those namespaces exist on the graph. Gold labels for a MetaMetro bench come from `load_bench_gold_cgt(bench_dir).node_colors` (row-wise argmax, or `-1` if the row is empty). Do not read `taxon` as a colour namespace.
 

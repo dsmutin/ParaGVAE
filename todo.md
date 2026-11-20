@@ -17,6 +17,7 @@ Scaffold checklist. Check a box only after mandatory tests pass.
 - [x] MetaMetro v0.22.1 pin (version 0.7.12)
 - [x] ``benchmark/registry/results.csv`` recomputed: ``phage_x10`` on the rebuilt bench gold; ``heldout_genera``, ``low75half``, ``half100half`` are ``status=missing`` until their graphs are built (version 0.7.13)
 - [x] Provenance records the installed MetaMetro version and the pin separately (version 0.7.14)
+- [x] Colouring arm: ``kmeans_raw`` plus warning for graphs without a bench; a bench without composition fails (version 0.7.15)
 - [x] Edge line-graph flip (train and infer)
 - [x] Decaying label leakage from an observed-node mask
 - [x] SSL plan plus supervised class-weighted GCN
