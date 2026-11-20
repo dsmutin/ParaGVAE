@@ -16,6 +16,7 @@ Scaffold checklist. Check a box only after mandatory tests pass.
 - [x] Colouring arm ignores foreign namespaces (kraken2, decaying); k-means fallback warns and sets ``coloring_source`` (version 0.7.11)
 - [x] MetaMetro v0.22.1 pin (version 0.7.12)
 - [x] MetaMetro v0.24.0 pin (version 0.7.19)
+- [x] Geometric gold from ``ground_truth/`` via ``load_bench_states`` / ``load_bench_gold``; no ``colors.tsv`` fallback; ``n_sample_colors`` counts only ``sample``; DS analyze writes ``provenance.txt`` through ``run_record`` (version 0.8.0)
 - [x] ``benchmark/registry/results.csv``: ``phage_x10`` recomputed on the rebuilt bench gold (version 0.7.13). ``heldout_genera``, ``low75half``, and ``half100half`` were not recomputed: they are not built on the box, so their rows stay ``status=missing`` (#1197)
 - [x] Registry missing-row policy: only an unbuilt bench or a bench without ``ground_truth/`` may be recorded as missing; a rerun recomputes missing rows; F1 wording for unlabelled nodes (version 0.7.16)
 - [x] Provenance records the installed MetaMetro version and the pin separately (version 0.7.14)

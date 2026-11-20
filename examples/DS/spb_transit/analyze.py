@@ -24,10 +24,10 @@ def main() -> None:
     features = graph["features"]
     center = features[:, :2].mean(axis=0)
     distance = np.linalg.norm(features[:, :2] - center, axis=1)
-    type_columns = [i for i, (namespace, _value) in enumerate(graph["color_names"]) if namespace == "transport_type"]
-    route_columns = [i for i, (namespace, _value) in enumerate(graph["color_names"]) if namespace == "route"]
-    if len(type_columns) != 3:
-        raise RuntimeError(f"expected 3 transport types, found {len(type_columns)}")
+    type_gold = graph["gold"]["transport_type"]
+    route_gold = graph["gold"]["route"]
+    if len(type_gold["values"]) != 3:
+        raise RuntimeError(f"expected 3 transport types, found {len(type_gold['values'])}")
     budget = training_budget()
     out = Path(__file__).resolve().parent
     analyze(
@@ -41,8 +41,8 @@ def main() -> None:
         extras={
             "coverage": (features[:, 2], "model_input"),
             "dist_from_mean_coordinate": (distance, "model_input"),
-            "n_modes": (graph["node_colors"][:, type_columns].sum(axis=1).astype(np.float64), "not_in_model"),
-            "n_routes": (graph["node_colors"][:, route_columns].sum(axis=1).astype(np.float64), "not_in_model"),
+            "n_modes": (type_gold["node_colors"].sum(axis=1).astype(np.float64), "not_in_model"),
+            "n_routes": (route_gold["node_colors"].sum(axis=1).astype(np.float64), "not_in_model"),
         },
         out=out,
         epilogue=(
@@ -53,10 +53,12 @@ def main() -> None:
             "is the same split, because non-bus stops are the boundary of the bus majority."
         ),
         protocol=(
-            "MetaMetro `data/work/spb_ground_transit`. The node class is the sorted combination of "
-            "`transport_type` colours (bus, tram, trolley, and the mixed labels). It is not a single route id. "
+            "MetaMetro bench `spb_ground_transit` (default_outdir, MetaMetro >= 0.23.0). "
+            "The node class is the sorted combination of `transport_type` gold from ground_truth/ "
+            "(bus, tram, trolley, and the mixed labels), loaded with load_bench_states. "
+            "It is not a single route id and is not read from colors.tsv or CGT colours. "
             "Model inputs are longitude, latitude, and the simulated passenger coverage from the CFA. "
-            "Edge weight is that coverage on the hop. Route colours are multi-label and are scored afterwards "
+            "Edge weight is that coverage on the hop. Route gold is multi-label and is scored afterwards "
             "as cluster cohesion, not as the k-means target. "
             f"Standard edge loss, at most {budget['max_epochs']} epochs, patience {budget['patience']}, "
             f"learning rate {budget['lr']}. Seeds 0 and 1."
@@ -67,8 +69,8 @@ def main() -> None:
 
     nodes = pd.read_csv(out / "nodes.csv")
     routes = route_cohesion(
-        graph["node_colors"],
-        graph["color_names"],
+        route_gold["node_colors"],
+        route_gold["names"],
         nodes["cluster"].to_numpy(),
         features[:, :2],
     )

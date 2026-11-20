@@ -16,7 +16,7 @@ from load import load_geometric, training_budget  # noqa: E402
 
 
 def main() -> None:
-    """Predict road type from longitude and latitude. Node colours are empty."""
+    """Predict road type from longitude and latitude. Node colours stay empty of gold."""
     graph = load_geometric("roxel")
     if graph["feature_names"] != ["longitude", "latitude"]:
         raise RuntimeError(f"unexpected Roxel features {graph['feature_names']}")
@@ -31,9 +31,12 @@ def main() -> None:
     distance = np.linalg.norm(features - center, axis=1)
     budget = training_budget()
     protocol = (
-        "MetaMetro `data/work/roxel`, the sfnetworks Roxel street example. "
-        "The node class is the road type. The node colour matrix is all zeros; street names are edge colours "
-        "and are not the node target. Model inputs are longitude and latitude only. "
+        "MetaMetro bench `roxel` (default_outdir, MetaMetro >= 0.23.0), the sfnetworks Roxel street example. "
+        "The node class is the road type from ground_truth/ type, loaded with load_bench_states; "
+        "it is not leftover CGT node_labels and is not read from colors.tsv. "
+        "A default build leaves the node colour matrix empty of gold. "
+        "Street names are the name gold (edge_targets), not edge colours, and are not the node target. "
+        "Model inputs are longitude and latitude only. "
         f"Standard edge loss, at most {budget['max_epochs']} epochs, patience {budget['patience']}, "
         f"learning rate {budget['lr']}. Seeds 0 and 1."
     )

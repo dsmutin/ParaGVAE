@@ -82,7 +82,7 @@ MetaMetro is a required dependency of this environment. The pinned tag is `PIN` 
 
 Train and score on a MetaMetro coloured graph tensor (`Cgt`). Do not keep a second graph schema, and do not hand-build the CSR, features, or colours that MetaMetro already writes. If the input is still an assembly, CFA, or CDBG, call MetaMetro to produce the tensor, then train on that object.
 
-`paragvae.metametro_path.ensure_metametro` fails when the package is missing or is older than that pin. A newer version is accepted. A hypothesis run records the installed package as `metametro_version` and that pin as `metametro_pin` in `benchmark/<hypothesis>/provenance.txt`. `research/run_registry.py` writes the same fields to `benchmark/registry/provenance.txt`. Both use `paragvae.run_record.installed_metametro_version` (the live `metametro.__version__`) and `installed_metametro_commit` (from package metadata or the checkout; `unknown` if it cannot be determined). `training_arrays` is the reader that turns one validated tensor into the arrays the GCN consumes.
+`paragvae.metametro_path.ensure_metametro` fails when the package is missing or is older than that pin. A newer version is accepted. A hypothesis run records the installed package as `metametro_version` and that pin as `metametro_pin` in `benchmark/<hypothesis>/provenance.txt`. `research/run_registry.py` writes the same fields to `benchmark/registry/provenance.txt`. `paragvae.ds.analyze` writes them to `examples/DS/<name>/provenance.txt` for an error-analysis run. All three use `paragvae.run_record.write_run_provenance`, which records `metametro_version` from `installed_metametro_version` (the live `metametro.__version__`), `metametro_pin`, `metametro_commit` (from package metadata or the checkout; `unknown` if it cannot be determined), and `paragvae_commit`. `training_arrays` is the reader that turns one validated tensor into the arrays the GCN consumes.
 
 ## Colourings
 
@@ -100,7 +100,7 @@ Check that a selected colouring exists on the bench ToCUMG before training. If t
 | `composition_kmeans` | Stored MetaMetro composition layer on a bench |
 | `kmeans_raw` | No bench; k-means colours from raw features (the standard path; the row flag is enough, no warning) |
 
-Use `load_bench_cgt(..., namespaces=...)` to keep the layers an arm needs, after checking those namespaces exist on the graph. Gold labels for a MetaMetro bench come from `load_bench_gold_cgt(bench_dir).node_colors` (row-wise argmax, or `-1` if the row is empty). Do not read `taxon` as a colour namespace.
+Use `load_bench_cgt(..., namespaces=...)` to keep the layers an arm needs, after checking those namespaces exist on the graph. Gold labels for a MetaMetro bench come from `load_bench_gold` / `load_bench_gold_cgt` under `ground_truth/` (row-wise argmax of the gold colour matrix, or `-1` if the row is empty). Do not read a gold namespace (`taxon`, or `transport_type`/`route` on Saint Petersburg, or `type`/`name` on Roxel) as a colour, and do not fall back to `colors.tsv`. Geometric examples use `load_bench_states` plus those gold helpers, as in `paragvae.ds.load.load_geometric`.
 
 ## Evaluation taxids
 

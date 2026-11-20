@@ -18,6 +18,7 @@ from scipy.sparse.csgraph import connected_components
 from scipy.stats import spearmanr
 
 from paragvae.native import train_gcn_native
+from paragvae.run_record import write_run_provenance
 from paragvae.score import evaluate
 from paragvae.study import _degree_and_clustering
 from paragvae.train import undirected_edges
@@ -367,6 +368,17 @@ def analyze(
     }
     (out / "summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     _write_readme(out, summary, assoc, frame, protocol, epilogue)
+    write_run_provenance(
+        out,
+        command=f"python examples/DS/{name}/analyze.py",
+        config={
+            "seeds": list(seeds),
+            "max_epochs": max_epochs,
+            "patience": patience,
+            "lr": lr,
+        },
+        header=[f"example: {name}"],
+    )
     return summary
 
 
@@ -438,6 +450,7 @@ def _write_readme(
             "- `nodes.csv` — one row per node",
             "- `associations.csv` — the table above",
             "- `fits.csv` — F1, ARI, and epochs per seed",
+            "- `provenance.txt` — installed MetaMetro version and pin, MetaMetro commit, ParaGVAE commit",
             "- `error_by_degree.html`, `error_by_boundary.html`, `error_by_class.html`, `associations.html`",
             "",
         ]
@@ -454,9 +467,11 @@ def route_cohesion(
     coordinates: np.ndarray,
     min_stops: int = 8,
 ) -> pd.DataFrame:
-    """For each route colour, the fraction of its stops that share one cluster.
+    """For each route, the fraction of its stops that share one cluster.
 
-    ``color_names`` is ``(namespace, value)`` aligned with colour columns.
+    ``colors`` and ``color_names`` are a gold matrix from ``ground_truth/``
+    (``load_geometric(...)["gold"]["route"]``), not CGT colour columns.
+    ``color_names`` is ``(namespace, value)`` aligned with those columns.
     A size-matched null shuffles cluster ids 50 times and averages cohesion.
     """
     if colors.shape[1] != len(color_names):

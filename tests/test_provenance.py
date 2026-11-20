@@ -98,3 +98,43 @@ def test_registry_provenance_records_real_install(tmp_path: Path) -> None:
     commit = line.split(":", 1)[1].strip()
     assert commit != "unknown"
     assert len(commit) >= 7
+
+
+def test_ds_analyze_provenance_tracks_metametro_dunder_version(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A fake metametro.__version__ appears in the DS analyze provenance sidecar."""
+    import numpy as np
+
+    from paragvae.ds.analyze import analyze
+
+    monkeypatch.setattr(metametro, "__version__", "9.8.7")
+    features = np.array([[0.0], [1.0], [0.1], [1.1]], dtype=np.float32)
+    labels = np.array([0, 0, 1, 1], dtype=np.int64)
+    indptr = np.array([0, 1, 2, 3, 4], dtype=np.int64)
+    indices = np.array([1, 0, 3, 2], dtype=np.int64)
+    out = tmp_path / "ds"
+    analyze(
+        name="toy",
+        features=features,
+        labels=labels,
+        label_names=["a", "b"],
+        indptr=indptr,
+        indices=indices,
+        edge_weight=None,
+        extras={},
+        out=out,
+        protocol="toy",
+        max_epochs=1,
+        patience=1,
+        lr=0.05,
+        seeds=(0,),
+    )
+    text = (out / "provenance.txt").read_text(encoding="utf-8")
+    assert "command: python examples/DS/toy/analyze.py" in text
+    assert "metametro_version: 9.8.7" in text
+    assert f"metametro_pin: {REQUIRED_METAMETRO}" in text
+    assert "metametro_commit:" in text
+    assert "paragvae_commit:" in text
+    assert "metametro_version: 9.8.7" in text.split("metametro_pin")[0]
+

@@ -146,6 +146,12 @@ def load_phage() -> dict:
     names = ["unclassified_or_mixed", "T1", "T3", "T4", "T5", "T7"]
     if int(labels.max()) + 1 != len(names):
         raise ValueError("phage label ids do not match the six documented classes")
+    palette = _palette_path(cgt_dir)
+    if palette is None:
+        raise FileNotFoundError(
+            f"phage CGT at {cgt_dir} has no colour palette, so n_sample_colors "
+            "cannot count only the sample namespace"
+        )
     return {
         "features": features,
         "labels": labels,
@@ -156,38 +162,162 @@ def load_phage() -> dict:
         "coverage": node_coverage,
         "length": length,
         "gc": gc,
-        "n_sample_colors": colors.sum(axis=1).astype(np.float64),
+        "n_sample_colors": sample_color_counts(colors, color_names_from_palette(palette, tensor.color_ids)),
     }
 
 
-def _color_names(cgt: Path, cdbg_colors: Path) -> list[tuple[str, str]]:
-    palette = pd.read_csv(cdbg_colors, sep="\t")
-    by_id = {int(row.color_id): (str(row.namespace), str(row.value)) for row in palette.itertuples(index=False)}
-    columns = pd.read_csv(cgt / "color_ids.tsv", sep="\t")
+# Geometric benches and the gold namespaces load_geometric reads from ground_truth/.
+# Signatures match MetaMetro v0.24.0 load_bench_states (docs/benchmarks.md):
+# spb uses node_namespace=transport_type and edge_namespaces=(transport_type, route);
+# roxel uses node_namespace=type and edge_namespaces=(name,).
+GEOMETRIC = {
+    "spb_transit": {
+        "bench": "spb_ground_transit",
+        "node_namespace": "transport_type",
+        "edge_namespaces": ("transport_type", "route"),
+    },
+    "roxel": {
+        "bench": "roxel",
+        "node_namespace": "type",
+        "edge_namespaces": ("name",),
+    },
+}
+
+# Prefixes published in MetaMetro v0.24.0 docs/benchmarks.md for default
+# builds with the GTFS mirror and the sfnetworks Roxel data. Full hashes
+# are not stored here; a real build is required to check them.
+GEOMETRIC_IDENTITY_PREFIXES = {
+    "spb_ground_transit": "cfd1dcfb",
+    "roxel": "3232245d",
+}
+
+
+def sample_color_counts(node_colors: np.ndarray, color_names: list[tuple[str, str]]) -> np.ndarray:
+    """Return, per node, the number of colours in the ``sample`` namespace only."""
+    colors = np.asarray(node_colors)
+    if colors.ndim != 2:
+        raise ValueError("node_colors must be a 2-d array")
+    if colors.shape[1] != len(color_names):
+        raise ValueError("colour columns do not match colour names")
+    keep = [index for index, (namespace, _value) in enumerate(color_names) if namespace == "sample"]
+    if not keep:
+        return np.zeros(colors.shape[0], dtype=np.float64)
+    return colors[:, keep].sum(axis=1).astype(np.float64)
+
+
+def color_names_from_palette(palette_rows: list[dict] | Path, color_ids) -> list[tuple[str, str]]:
+    """Map CGT colour ids to ``(namespace, value)`` using a colour dictionary."""
+    if isinstance(palette_rows, Path):
+        table = pd.read_csv(palette_rows, sep="\t")
+        rows = table.to_dict(orient="records")
+    else:
+        rows = palette_rows
+    by_id = {
+        int(row["color_id"]): (str(row["namespace"]), str(row.get("value") or row["color_id"]))
+        for row in rows
+    }
     names = []
-    for row in columns.itertuples(index=False):
-        if int(row.color_id) not in by_id:
-            raise KeyError(f"colour id {row.color_id} is missing from {cdbg_colors}")
-        names.append(by_id[int(row.color_id)])
+    for color_id in color_ids:
+        if int(color_id) not in by_id:
+            raise KeyError(f"colour id {color_id} is missing from the colour dictionary")
+        names.append(by_id[int(color_id)])
     return names
 
 
-def load_geometric(name: str) -> dict:
-    """SPB transit or Roxel street CGT, including colour names."""
-    if name not in {"spb_transit", "roxel"}:
+def _palette_path(cgt_dir: Path) -> Path | None:
+    for candidate in (cgt_dir.parent / "cdbg" / "colors.tsv", cgt_dir.parent.parent / "cdbg" / "colors.tsv"):
+        if candidate.is_file():
+            return candidate
+    return None
+
+
+def _gold_files(outdir: Path, namespace: str) -> bool:
+    root = Path(outdir) / "ground_truth"
+    return (root / f"{namespace}_nodes.tsv").is_file() and (root / f"{namespace}_edges.tsv").is_file()
+
+
+def _missing_gold_error(name: str, outdir: Path, missing: list[str]) -> FileNotFoundError:
+    needed = ", ".join(missing)
+    return FileNotFoundError(
+        f"{name}: gold {needed} is not under {Path(outdir) / 'ground_truth'}. "
+        "MetaMetro 0.23.0 and newer store these namespaces in ground_truth/, "
+        "not in colors.tsv or CGT colours. This loader does not fall back to colours."
+    )
+
+
+def geometric_bench_dir(name: str) -> Path:
+    """Return the default MetaMetro benchbuild directory for a geometric example."""
+    if name not in GEOMETRIC:
         raise KeyError(name)
-    folder = "spb_ground_transit" if name == "spb_transit" else "roxel"
-    cgt_dir = _metametro_work(folder) / "states" / "cgt"
-    from paragvae.metametro_path import training_arrays
+    from paragvae.metametro_path import ensure_metametro
 
-    from metametro import load_cgt
+    ensure_metametro()
+    from metametro.bench.paths import default_outdir
+    from metametro.bench.registry import resolve
 
-    tensor = load_cgt(cgt_dir)
+    return default_outdir(resolve(GEOMETRIC[name]["bench"]))
+
+
+def bench_identity(outdir: Path) -> str | None:
+    """Return the build identity of a bench directory, if it is recorded."""
+    manifest = Path(outdir) / "manifest.yaml"
+    if manifest.is_file():
+        data = yaml.safe_load(manifest.read_text(encoding="utf-8")) or {}
+        if data.get("identity"):
+            return str(data["identity"])
+    digest = Path(outdir) / "identity.sha256"
+    if digest.is_file():
+        return digest.read_text(encoding="utf-8").strip().split()[0] or None
+    return None
+
+
+def load_geometric(name: str, outdir: str | Path | None = None) -> dict:
+    """Load a Saint Petersburg or Roxel bench, with gold from ``ground_truth/``.
+
+    Uses ``metametro.bench.load_bench_states`` for features, node classes, and
+    edge targets, and ``load_bench_gold`` / ``load_bench_gold_cgt`` for the
+    gold matrices. Bench colours stay in ``node_colors``; gold never comes
+    from ``colors.tsv``. Pass ``outdir`` to point at a benchbuild directory;
+    the default is MetaMetro's ``default_outdir`` for the named bench.
+    """
+    if name not in GEOMETRIC:
+        raise KeyError(name)
+    spec = GEOMETRIC[name]
+    needed = tuple(dict.fromkeys((spec["node_namespace"], *spec["edge_namespaces"])))
+    folder = Path(outdir) if outdir is not None else geometric_bench_dir(name)
+    missing = [namespace for namespace in needed if not _gold_files(folder, namespace)]
+    if missing:
+        raise _missing_gold_error(name, folder, missing)
+
+    from paragvae.metametro_path import ensure_metametro, training_arrays
+
+    ensure_metametro()
+    from metametro.bench import load_bench_gold, load_bench_gold_cgt, load_bench_states
+
+    states = load_bench_states(
+        folder,
+        node_namespace=spec["node_namespace"],
+        edge_namespaces=spec["edge_namespaces"],
+    )
+    tensor = states.cgt
     features, indptr, indices, edge_weight = training_arrays(tensor)
     labels = np.asarray(tensor.node_labels, dtype=np.int64)
-    names = [str(item) for item in tensor.metadata["node_class_names"]]
-    if len(names) != int(labels.max()) + 1:
+    names = [str(item) for item in states.node_class_names]
+    if labels.size and len(names) != int(labels.max()) + 1:
         raise ValueError(f"{name}: class names do not cover the label ids")
+    gold = {}
+    for namespace in needed:
+        labels_ns = load_bench_gold(folder, namespace)
+        gold_cgt = load_bench_gold_cgt(folder, namespace)
+        matrix = np.asarray(gold_cgt.node_colors)
+        if matrix.shape[0] != features.shape[0]:
+            raise ValueError(f"{name}: gold {namespace} is not aligned with the CGT nodes")
+        gold[namespace] = {
+            "values": labels_ns.values,
+            "names": [(namespace, value) for value in labels_ns.values],
+            "node_colors": matrix,
+        }
+    color_names = color_names_from_palette(list(states.cdbg.colors or []), tensor.color_ids)
     return {
         "features": features,
         "feature_names": [str(item) for item in tensor.metadata["node_feature_names"]],
@@ -197,5 +327,9 @@ def load_geometric(name: str) -> dict:
         "indices": indices,
         "edge_weight": edge_weight,
         "node_colors": np.asarray(tensor.node_colors),
-        "color_names": _color_names(cgt_dir, cgt_dir.parent / "cdbg" / "colors.tsv"),
+        "color_names": color_names,
+        "gold": gold,
+        "edge_targets": np.asarray(states.edge_targets),
+        "edge_label_names": list(states.edge_label_names),
+        "bench_dir": folder,
     }

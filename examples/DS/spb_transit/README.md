@@ -6,7 +6,7 @@ Which nodes does the standard early-stopped GCN put in a cluster whose majority 
 
 ## Protocol
 
-MetaMetro `data/work/spb_ground_transit`. The node class is the sorted combination of `transport_type` colours (bus, tram, trolley, and the mixed labels). It is not a single route id. Model inputs are longitude, latitude, and the simulated passenger coverage from the CFA. Edge weight is that coverage on the hop. Route colours are multi-label and are scored afterwards as cluster cohesion, not as the k-means target. Standard edge loss, at most 60 epochs, patience 8, learning rate 0.05. Seeds 0 and 1.
+MetaMetro bench `spb_ground_transit` (default_outdir, MetaMetro >= 0.23.0). The node class is the sorted combination of `transport_type` gold from ground_truth/ (bus, tram, trolley, and the mixed labels), loaded with load_bench_states. It is not a single route id and is not read from colors.tsv or CGT colours. Model inputs are longitude, latitude, and the simulated passenger coverage from the CFA. Edge weight is that coverage on the hop. Route gold is multi-label and is scored afterwards as cluster cohesion, not as the k-means target. Standard edge loss, at most 60 epochs, patience 8, learning rate 0.05. Seeds 0 and 1.
 
 A node is an error when its label is not the majority label of its k-means cluster. `k` is the number of classes. Seed 0 is the error flag used in the charts. `stable_error` is a node that is wrong for every seed.
 
@@ -52,6 +52,7 @@ Spearman rho is between the feature and the seed-0 error flag. The permutation p
 - `nodes.csv` — one row per node
 - `associations.csv` — the table above
 - `fits.csv` — F1, ARI, and epochs per seed
+- `provenance.txt` — installed MetaMetro version and pin, MetaMetro commit, ParaGVAE commit
 - `error_by_degree.html`, `error_by_boundary.html`, `error_by_class.html`, `associations.html`
 
 ## Reading the correlations

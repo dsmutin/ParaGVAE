@@ -6,7 +6,7 @@ Which nodes does the standard early-stopped GCN put in a cluster whose majority 
 
 ## Protocol
 
-MetaMetro `data/work/roxel`, the sfnetworks Roxel street example. The node class is the road type. The node colour matrix is all zeros; street names are edge colours and are not the node target. Model inputs are longitude and latitude only. Standard edge loss, at most 60 epochs, patience 8, learning rate 0.05. Seeds 0 and 1. The stored class names include a case split: unclassified and Unclassified. They are kept as separate classes.
+MetaMetro bench `roxel` (default_outdir, MetaMetro >= 0.23.0), the sfnetworks Roxel street example. The node class is the road type from ground_truth/ type, loaded with load_bench_states; it is not leftover CGT node_labels and is not read from colors.tsv. A default build leaves the node colour matrix empty of gold. Street names are the name gold (edge_targets), not edge colours, and are not the node target. Model inputs are longitude and latitude only. Standard edge loss, at most 60 epochs, patience 8, learning rate 0.05. Seeds 0 and 1. The stored class names include a case split: unclassified and Unclassified. They are kept as separate classes.
 
 A node is an error when its label is not the majority label of its k-means cluster. `k` is the number of classes. Seed 0 is the error flag used in the charts. `stable_error` is a node that is wrong for every seed.
 
@@ -49,4 +49,5 @@ Spearman rho is between the feature and the seed-0 error flag. The permutation p
 - `nodes.csv` — one row per node
 - `associations.csv` — the table above
 - `fits.csv` — F1, ARI, and epochs per seed
+- `provenance.txt` — installed MetaMetro version and pin, MetaMetro commit, ParaGVAE commit
 - `error_by_degree.html`, `error_by_boundary.html`, `error_by_class.html`, `associations.html`
