@@ -10,6 +10,8 @@ MetaMetro bench `roxel` (default_outdir, MetaMetro >= 0.23.0), the sfnetworks Ro
 
 A node is an error when its label is not the majority label of its k-means cluster. `k` is the number of classes. Seed 0 is the error flag used in the charts. `stable_error` is a node that is wrong for every seed.
 
+The numbers in this folder (and `summary.json` / `nodes.csv`) were last written on 2026-09-24 (commit 3bfbf12) on the pre-0.23 `data/work` layout. They have not been rerun against `ground_truth/` under MetaMetro 0.23+ / ParaGVAE 0.8.0.
+
 ## Result
 
 - Nodes: 588. Classes: 9. Undirected edges, self-loops removed: 727. Isolated nodes: 107.
@@ -49,5 +51,4 @@ Spearman rho is between the feature and the seed-0 error flag. The permutation p
 - `nodes.csv` — one row per node
 - `associations.csv` — the table above
 - `fits.csv` — F1, ARI, and epochs per seed
-- `provenance.txt` — installed MetaMetro version and pin, MetaMetro commit, ParaGVAE commit
 - `error_by_degree.html`, `error_by_boundary.html`, `error_by_class.html`, `associations.html`

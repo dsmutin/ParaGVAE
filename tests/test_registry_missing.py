@@ -268,7 +268,7 @@ def test_main_built_bench_with_deleted_assembly_report_raises(
     report.unlink()
     assert run_registry._missing_load_reason("heldout_genera", root) is None
     _patch_main(monkeypatch, tmp_path / "out", {"heldout_genera": root})
-    with pytest.raises(FileNotFoundError, match="assembly report"):
+    with pytest.raises(FileNotFoundError, match="is missing assembly report"):
         run_registry.main()
     assert not (tmp_path / "out" / "results.csv").is_file()
 
@@ -282,6 +282,74 @@ def test_unreadable_status_on_a_graph_directory_raises(
     root = _built_heldout(tmp_path / "built")
     (root / "manifest.yaml").unlink()
     (root / "cdbg" / "metadata.yaml").unlink()
+    assert run_registry._bench_manifest_status(root) is None
+    assert not run_registry._bench_allows_missing(root)
+    _patch_main(monkeypatch, tmp_path / "out", {"heldout_genera": root})
+    with pytest.raises(FileNotFoundError, match="missing row is allowed only"):
+        run_registry.main()
+    assert not (tmp_path / "out" / "results.csv").is_file()
+
+
+
+@pytest.mark.parametrize("status", ["garbage", "Built", "present", "missing", "complete"])
+@pytest.mark.parametrize("lost", ["ground_truth", "report"])
+def test_non_contract_only_bench_raises_when_an_artifact_is_lost(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, status: str, lost: str
+) -> None:
+    """Only a clearly contract-only bench may be recorded as missing (R1'')."""
+    import shutil
+
+    import run_registry
+
+    root = _contract_only(tmp_path / f"{status}-{lost}")
+    (root / "manifest.yaml").write_text(
+        f"bench: bacteria_species_20_heldout\nstatus: {status}\n", encoding="utf-8"
+    )
+    if lost == "ground_truth":
+        shutil.rmtree(root / "ground_truth")
+    else:
+        report = root.parents[1] / "data" / "raw" / "assembly_data_report.jsonl"
+        report.unlink()
+    assert not run_registry._bench_allows_missing(root)
+    _patch_main(monkeypatch, tmp_path / "out", {"heldout_genera": root})
+    with pytest.raises(FileNotFoundError, match="missing row is allowed only"):
+        run_registry.main()
+    assert not (tmp_path / "out" / "results.csv").is_file()
+
+
+@pytest.mark.parametrize("artifact", ["cfa", "cdbg", "cgt", "identity"])
+@pytest.mark.parametrize("lost", ["ground_truth", "report"])
+def test_contract_with_a_graph_or_identity_raises_when_an_artifact_is_lost(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, artifact: str, lost: str
+) -> None:
+    import shutil
+
+    import run_registry
+
+    root = _contract_only(tmp_path / f"contract-{artifact}-{lost}")
+    if artifact == "identity":
+        (root / "identity.sha256").write_text("abc\n", encoding="utf-8")
+    else:
+        (root / artifact).mkdir()
+    if lost == "ground_truth":
+        shutil.rmtree(root / "ground_truth")
+    else:
+        (root.parents[1] / "data" / "raw" / "assembly_data_report.jsonl").unlink()
+    assert not run_registry._bench_allows_missing(root)
+    _patch_main(monkeypatch, tmp_path / "out", {"heldout_genera": root})
+    with pytest.raises(FileNotFoundError, match="missing row is allowed only"):
+        run_registry.main()
+    assert not (tmp_path / "out" / "results.csv").is_file()
+
+
+def test_unreadable_manifest_without_a_contract_dir_raises(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """An unreadable or missing status with no contract/ directory must raise (R1c)."""
+    import run_registry
+
+    root = tmp_path / "no-status"
+    root.mkdir()
     assert run_registry._bench_manifest_status(root) is None
     assert not run_registry._bench_allows_missing(root)
     _patch_main(monkeypatch, tmp_path / "out", {"heldout_genera": root})

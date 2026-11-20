@@ -55,6 +55,7 @@ def main() -> None:
         extras={"dist_from_mean_coordinate": (distance, "model_input")},
         out=Path(__file__).resolve().parent,
         protocol=protocol,
+        bench_dir=graph["bench_dir"],
         **budget,
     )
 

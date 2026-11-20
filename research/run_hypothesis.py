@@ -16,7 +16,7 @@ from paragvae.study import amber_mode, arm_is_redundant, run_arm  # noqa: E402
 from paragvae.suite import arms_for, load_config, load_graphs  # noqa: E402
 
 
-def write_provenance(dest: Path, hypothesis: str, config: dict) -> None:
+def write_provenance(dest: Path, hypothesis: str, config: dict, *, dirty: str | None = None) -> None:
     """Record the command, package versions, and checkouts next to a benchmark."""
     from paragvae.run_record import write_run_provenance
 
@@ -29,12 +29,16 @@ def write_provenance(dest: Path, hypothesis: str, config: dict) -> None:
         header=[f"hypothesis: {hypothesis}"],
         footer=[f"vaegbin_data: {config['vaegbin_data']}"],
         repo_root=ROOT,
+        dirty=dirty,
     )
 
 
 def main(hypothesis: str, graphs=None, config=None) -> Path:
     """Write ``research/<hypothesis>/results.csv`` and return that path."""
     config = config or load_config()
+    from paragvae.run_record import working_tree_dirty
+
+    dirty = working_tree_dirty(ROOT)
     if graphs is None:
         graphs = load_graphs(config)
         for graph in graphs:
@@ -77,7 +81,7 @@ def main(hypothesis: str, graphs=None, config=None) -> Path:
             writer.writeheader()
             writer.writerows(rows)
     save_charts(rows, bench)
-    write_provenance(bench, hypothesis, config)
+    write_provenance(bench, hypothesis, config, dirty=dirty)
     return dest
 
 

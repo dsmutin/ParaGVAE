@@ -28,9 +28,10 @@ BENCH_ROOT_ENV = "PARAGVAE_BENCH_ROOT"
 def completion_bench_root(config: dict | None = None, root: str | Path | None = None) -> Path | None:
     """Return the explicit MetaMetro checkout root, if one was given.
 
-    Precedence: the ``root`` argument, then ``config['bench_root']``, then
-    the ``PARAGVAE_BENCH_ROOT`` environment variable. There is no silent
-    fallback that invents a root.
+    Precedence, highest first: the ``root`` argument (``--bench-root`` from
+    the CLI), then ``config['bench_root']``, then the ``PARAGVAE_BENCH_ROOT``
+    environment variable. The CLI argument always wins over the environment
+    variable. There is no silent fallback that invents a root.
     """
     if root is not None:
         return Path(root)

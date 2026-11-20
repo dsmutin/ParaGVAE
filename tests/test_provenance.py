@@ -318,3 +318,218 @@ def test_main_does_not_rewrite_provenance_when_no_ok_rows_are_computed(
     run_registry.main([])
     assert sidecar.read_text(encoding="utf-8") == "SENTINEL\n"
     assert (tmp_path / "out" / "results.csv").read_bytes() == before
+
+
+def _historical_row_records() -> list[dict]:
+    import csv
+
+    path = ROOT / "benchmark" / "registry" / "row_provenance.csv"
+    return list(csv.DictReader(path.open(encoding="utf-8")))
+
+
+def test_committed_historical_rows_are_marked_reconstructed() -> None:
+    """The 22 phage rows record unknown dirty, the training start, and source=reconstructed."""
+    rows = _historical_row_records()
+    assert len(rows) == 22
+    assert {row["dataset"] for row in rows} == {"phage_x10"}
+    assert all(row["dirty"] == "unknown" for row in rows)
+    assert all(row["source"] == "reconstructed" for row in rows)
+    assert all(row["timestamp"] == "2026-11-20T16:07:53+03:00" for row in rows)
+    assert all(row["paragvae_commit"] == "7fe392a812ee70cdf49aa6481cd248fdf1f56141" for row in rows)
+    assert all(row["metametro_version"] == "0.22.1" for row in rows)
+    assert all(row["metametro_commit"] == "fdd0519d4a7a7d20be218d63da55ddfcdf1b316a" for row in rows)
+    assert "16:09:38" not in (ROOT / "benchmark" / "registry" / "row_provenance.csv").read_text(encoding="utf-8")
+
+
+def test_committed_historical_sidecar_is_hand_written() -> None:
+    """The checked-in registry sidecar is a historical record, not a generator output."""
+    from paragvae.run_record import GENERATED_HEADER
+
+    text = (ROOT / "benchmark" / "registry" / "provenance.txt").read_text(encoding="utf-8")
+    first = text.splitlines()[0]
+    assert first != GENERATED_HEADER
+    assert first.startswith("hand-written")
+    assert "not generated automatically" in first
+    assert "hand-written" in first
+    assert "historical" in first
+    assert "trained_at: 2026-11-20 16:07:53" in text
+    assert "16:08:09" in text
+    assert "Europe/Moscow" in text
+
+
+def test_merge_keeps_historical_reconstructed_rows(tmp_path: Path) -> None:
+    """A merge that drops the 22 historical phage rows must fail (N2)."""
+    from paragvae.run_record import merge_row_provenance, row_provenance_record
+
+    src = ROOT / "benchmark" / "registry" / "row_provenance.csv"
+    dest = tmp_path / "row_provenance.csv"
+    dest.write_text(src.read_text(encoding="utf-8"), encoding="utf-8")
+    new = row_provenance_record("heldout_genera", 0, "gcn", "kmeans", dirty="false")
+    merge_row_provenance(dest, [new])
+    import csv
+
+    rows = list(csv.DictReader(dest.open(encoding="utf-8")))
+    historical = [row for row in rows if row["dataset"] == "phage_x10"]
+    assert len(historical) == 22
+    assert all(row["source"] == "reconstructed" for row in historical)
+    assert all(row["dirty"] == "unknown" for row in historical)
+    assert any(row["dataset"] == "heldout_genera" and row["source"] == "recorded" for row in rows)
+
+
+def test_main_merge_keeps_historical_reconstructed_rows(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """main() must keep the 22 reconstructed rows when it appends new ok records."""
+    import csv
+    import shutil
+
+    import run_registry
+    from test_registry_missing import _built_heldout
+
+    src = ROOT / "benchmark" / "registry" / "row_provenance.csv"
+    out = tmp_path / "out"
+    out.mkdir()
+    shutil.copy(src, out / "row_provenance.csv")
+    root = _built_heldout(tmp_path / "built")
+    _stub_ok_run(monkeypatch, tmp_path, {"heldout_genera": root})
+    run_registry.main([])
+    rows = list(csv.DictReader((out / "row_provenance.csv").open(encoding="utf-8")))
+    historical = [row for row in rows if row["dataset"] == "phage_x10"]
+    assert len(historical) == 22
+    assert all(row["source"] == "reconstructed" for row in historical)
+    assert any(row["dataset"] == "heldout_genera" for row in rows)
+
+
+def test_row_metametro_commit_tracks_the_installed_package(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Per-row metametro_commit is the installed package, not ParaGVAE HEAD (M10c)."""
+    from paragvae.run_record import git_head, row_provenance_record
+
+    digest = "a" * 40
+    monkeypatch.setattr("paragvae.run_record.installed_metametro_commit", lambda: digest)
+    record = row_provenance_record("phage_x10", 0, "gcn", "kmeans", dirty="false")
+    assert record["metametro_commit"] == digest
+    head = git_head(ROOT)
+    if head and head != digest:
+        assert record["metametro_commit"] != head
+        assert record["paragvae_commit"] == head
+
+
+def _init_code_repo(path: Path) -> None:
+    import subprocess
+
+    for name in ("src", "research", "configs", "scripts", "tests"):
+        folder = path / name
+        folder.mkdir()
+        (folder / ".keep").write_text("ok\n", encoding="utf-8")
+    (path / "pyproject.toml").write_text("[project]\nname = \"x\"\n", encoding="utf-8")
+    (path / "VERSION").write_text("0.8.3\n", encoding="utf-8")
+    subprocess.run(["git", "init"], cwd=path, check=True, capture_output=True)
+    subprocess.run(["git", "-C", str(path), "config", "user.name", "test"], check=True)
+    subprocess.run(["git", "-C", str(path), "config", "user.email", "test@example.com"], check=True)
+    subprocess.run(["git", "-C", str(path), "add", "-A"], cwd=path, check=True, capture_output=True)
+    subprocess.run(["git", "commit", "-m", "init"], cwd=path, check=True, capture_output=True)
+
+
+def test_clean_clone_records_dirty_false_on_every_row(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A clean checkout running several arms records dirty=false on every row and the sidecar (N4, P6)."""
+    import csv
+
+    import run_registry
+    from paragvae.run_record import working_tree_dirty
+    from test_registry_missing import _built_heldout
+
+    repo = tmp_path / "clone"
+    repo.mkdir()
+    _init_code_repo(repo)
+    assert working_tree_dirty(repo) == "false"
+    # Writing registry outputs inside the clone must not flip the flag.
+    (repo / "benchmark" / "registry").mkdir(parents=True)
+    (repo / "benchmark" / "registry" / "results.csv").write_text("dataset\n", encoding="utf-8")
+    assert working_tree_dirty(repo) == "false"
+
+    monkeypatch.setattr(run_registry, "ROOT", repo)
+    monkeypatch.setattr("paragvae.run_record._PACKAGE_ROOT", repo)
+    root = _built_heldout(tmp_path / "built")
+    _stub_ok_run(monkeypatch, tmp_path, {"heldout_genera": root})
+    # _stub_ok_run points OUT at tmp_path/out; also write inside the clone.
+    monkeypatch.setattr(run_registry, "OUT", repo / "benchmark" / "registry")
+    run_registry.main([])
+    rows = list(csv.DictReader((repo / "benchmark" / "registry" / "row_provenance.csv").open(encoding="utf-8")))
+    assert len(rows) >= 2
+    assert all(row["dirty"] == "false" for row in rows)
+    sidecar = (repo / "benchmark" / "registry" / "provenance.txt").read_text(encoding="utf-8")
+    assert "dirty: false" in sidecar
+    assert sidecar.splitlines()[0] == "generated automatically; do not edit"
+
+
+def test_dirty_tree_is_recorded_as_true(tmp_path: Path) -> None:
+    from paragvae.run_record import working_tree_dirty
+
+    repo = tmp_path / "clone"
+    repo.mkdir()
+    _init_code_repo(repo)
+    (repo / "src" / "changed.py").write_text("x = 1\n", encoding="utf-8")
+    assert working_tree_dirty(repo) == "true"
+
+
+def test_git_error_records_dirty_unknown(tmp_path: Path) -> None:
+    from paragvae.run_record import working_tree_dirty
+
+    assert working_tree_dirty(tmp_path) == "unknown"
+
+
+def test_row_timestamp_is_the_current_run_not_a_fixed_historical_instant() -> None:
+    """Newly recorded rows must not reuse the 0.8.2 16:09:38 timestamp (N5)."""
+    from datetime import datetime, timedelta, timezone
+
+    from paragvae.run_record import row_provenance_record
+
+    record = row_provenance_record("heldout_genera", 0, "gcn", "kmeans", dirty="false")
+    assert record["timestamp"] != "2026-11-20T16:09:38+03:00"
+    parsed = datetime.fromisoformat(record["timestamp"])
+    now = datetime.now(timezone.utc)
+    assert abs((now - parsed.astimezone(timezone.utc))) < timedelta(minutes=10)
+    assert record["source"] == "recorded"
+
+
+def test_ds_analyze_records_bench_dir_and_identity(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import numpy as np
+
+    from paragvae.ds.analyze import analyze
+
+    bench = tmp_path / "bench"
+    bench.mkdir()
+    digest = "b" * 64
+    (bench / "identity.sha256").write_text(digest + "\n", encoding="utf-8")
+    features = np.array([[0.0], [1.0], [0.1], [1.1]], dtype=np.float32)
+    labels = np.array([0, 0, 1, 1], dtype=np.int64)
+    indptr = np.array([0, 1, 2, 3, 4], dtype=np.int64)
+    indices = np.array([1, 0, 3, 2], dtype=np.int64)
+    out = tmp_path / "ds"
+    analyze(
+        name="toy",
+        features=features,
+        labels=labels,
+        label_names=["a", "b"],
+        indptr=indptr,
+        indices=indices,
+        edge_weight=None,
+        extras={},
+        out=out,
+        protocol="toy",
+        max_epochs=1,
+        patience=1,
+        lr=0.05,
+        seeds=(0,),
+        bench_dir=bench,
+    )
+    text = (out / "provenance.txt").read_text(encoding="utf-8")
+    assert f"bench_dir: {bench}" in text
+    assert f"identity: {digest}" in text
+    assert "example: toy" in text

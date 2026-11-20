@@ -67,7 +67,13 @@ ARMS = (
 )
 
 
-def write_registry_provenance(dest: Path, config: dict, paths: dict[str, Path] | None = None) -> None:
+def write_registry_provenance(
+    dest: Path,
+    config: dict,
+    paths: dict[str, Path] | None = None,
+    *,
+    dirty: str | None = None,
+) -> None:
     """Write a machine-generated ``provenance.txt`` for a completion run."""
     from paragvae.run_record import write_run_provenance
 
@@ -99,6 +105,7 @@ def write_registry_provenance(dest: Path, config: dict, paths: dict[str, Path] |
         config=payload,
         footer=footer,
         repo_root=ROOT,
+        dirty=dirty,
     )
 
 
@@ -149,6 +156,9 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
 def main(argv: list[str] | None = None) -> None:
     args = _parse_args(argv or [])
     _prefer_extracted_hdbscan()
+    from paragvae.run_record import working_tree_dirty
+
+    dirty = working_tree_dirty(ROOT)
     config = load_config()
     paths = completion_paths(config, bench_root=args.bench_root)
     OUT.mkdir(parents=True, exist_ok=True)
@@ -175,7 +185,7 @@ def main(argv: list[str] | None = None) -> None:
             print(f"  {name} missing: {reason}", flush=True)
             new_rows = _unloaded_rows(name, path, config["seeds"], reason, done)
             _upsert(rows, new_rows)
-            computed_records.extend(_records_for(new_rows))
+            computed_records.extend(_records_for(new_rows, dirty=dirty))
             _write(destination, rows)
             continue
         labels = np.asarray(graph.labels)
@@ -199,7 +209,7 @@ def main(argv: list[str] | None = None) -> None:
                             "biological loss uses Kraken calls, not the pre-generation read taxid, and is not a training input",
                         )
                         _upsert(rows, missing)
-                        computed_records.extend(_records_for([missing]))
+                        computed_records.extend(_records_for([missing], dirty=dirty))
                     _write(destination, rows)
                     continue
                 assert_training_inputs_hide_labels(
@@ -217,7 +227,7 @@ def main(argv: list[str] | None = None) -> None:
                     for method in clusterings:
                         missing = _missing(name, seed, arm, architecture, n_layers, loss, method, features.shape[0], n_edges, f"{type(exc).__name__}: {exc}")
                         _upsert(rows, missing)
-                        computed_records.extend(_records_for([missing]))
+                        computed_records.extend(_records_for([missing], dirty=dirty))
                     _write(destination, rows)
                     continue
                 usable = labels >= 0
@@ -228,7 +238,7 @@ def main(argv: list[str] | None = None) -> None:
                     except Exception as exc:
                         missing = _missing(name, seed, arm, architecture, n_layers, loss, method, features.shape[0], n_edges, f"{type(exc).__name__}: {exc}")
                         _upsert(rows, missing)
-                        computed_records.extend(_records_for([missing]))
+                        computed_records.extend(_records_for([missing], dirty=dirty))
                         continue
                     scores = evaluate(trained.embedding, labels, method, int(seed), predicted=predicted)
                     ok_row = {
@@ -249,7 +259,7 @@ def main(argv: list[str] | None = None) -> None:
                         "note": note,
                     }
                     _upsert(rows, ok_row)
-                    computed_records.extend(_records_for([ok_row]))
+                    computed_records.extend(_records_for([ok_row], dirty=dirty))
                     computed_ok += 1
                 _write(destination, rows)
                 print(f"  {name} seed {seed} {arm} epochs {trained.epochs_ran}", flush=True)
@@ -259,7 +269,7 @@ def main(argv: list[str] | None = None) -> None:
 
         merge_row_provenance(OUT / "row_provenance.csv", computed_records)
     if computed_ok:
-        write_registry_provenance(OUT, config, paths)
+        write_registry_provenance(OUT, config, paths, dirty=dirty)
     print(f"wrote {destination}", flush=True)
 
 
@@ -306,7 +316,7 @@ def _cluster(embedding: np.ndarray, method: str, n_groups: int, seed: int) -> np
     raise ValueError(method)
 
 
-def _records_for(rows) -> list[dict]:
+def _records_for(rows, *, dirty: str) -> list[dict]:
     from paragvae.run_record import row_provenance_record
 
     if isinstance(rows, dict):
@@ -320,6 +330,7 @@ def _records_for(rows) -> list[dict]:
                 row["arm"],
                 row["clustering"],
                 repo_root=ROOT,
+                dirty=dirty,
             )
         )
     return records
@@ -370,26 +381,32 @@ def _bench_manifest_status(root: Path) -> str | None:
     return status or None
 
 
-def _bench_allows_missing(root: Path) -> bool:
-    """True only when the bench is not built (contract or otherwise unbuilt).
-
-    A missing row is allowed only when ``manifest.status != built``. If the
-    status cannot be read, that is an error unless the directory is clearly a
-    contract/unbuilt layout: a ``contract/`` folder and no graph.
-    """
-    status = _bench_manifest_status(root)
-    if status:
-        return status != "built"
+def _has_graph_artifacts(root: Path) -> bool:
+    """True when the directory has a graph or identity, as in MetaMetro check.py."""
     folder = Path(root)
-    has_graph = (
-        (folder / "cdbg").is_dir()
+    return (
+        (folder / "cfa").is_dir()
+        or (folder / "cdbg").is_dir()
         or (folder / "cgt").is_dir()
-        or (folder / "cfa").is_dir()
         or (folder / "identity.sha256").is_file()
     )
+
+
+def _bench_allows_missing(root: Path) -> bool:
+    """True only for a clearly contract-only bench.
+
+    Matches MetaMetro ``check_bench_directory``: ``status`` must be exactly
+    ``contract`` and there must be no ``cfa/``, ``cdbg/``, ``cgt/``, or
+    ``identity.sha256``. Every other status, including a typo, ``Built``,
+    ``present``, ``missing``, an unreadable manifest, or ``contract`` with a
+    graph or identity, is not allowed to become a missing row.
+    """
+    folder = Path(root)
+    has_graph = _has_graph_artifacts(folder)
     if has_graph:
         return False
-    return (folder / "contract").is_dir()
+    status = _bench_manifest_status(folder)
+    return status == "contract"
 
 
 def _has_cdbg(root: Path) -> bool:
@@ -430,21 +447,21 @@ def _built_bench_damage(name: str, path: Path) -> FileNotFoundError | None:
     if status == "built":
         prefix = f"{name} has manifest status built but is missing"
     else:
-        prefix = (
-            f"{name} is missing"
-        )
+        prefix = f"{name} is not a contract-only bench and is missing"
     return FileNotFoundError(
         f"{prefix} {', '.join(parts)} at {root}. "
-        "A missing row is allowed only when the bench manifest status is not built."
+        "A missing row is allowed only when the bench is clearly contract-only "
+        "(manifest status contract, and no cfa/, cdbg/, cgt/, or identity.sha256)."
     )
 
 
 def _missing_load_reason(name: str, path: Path) -> str | None:
     """Return a precise reason if a failed load may be recorded as missing.
 
-    A missing row is allowed only when the bench manifest status is not
-    ``built``. On a built bench, a lost ``cdbg/metadata.yaml``, a lost
-    assembly report, or a deleted ``ground_truth/`` must stop the run.
+    A missing row is allowed only when the bench is clearly contract-only
+    (manifest status ``contract`` and no graph or identity). Otherwise a
+    lost ``cdbg/metadata.yaml``, assembly report, or ``ground_truth/``
+    must stop the run.
     """
     root = Path(path)
     if not _bench_allows_missing(root):

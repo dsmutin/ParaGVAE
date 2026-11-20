@@ -18,7 +18,7 @@ from scipy.sparse.csgraph import connected_components
 from scipy.stats import spearmanr
 
 from paragvae.native import train_gcn_native
-from paragvae.run_record import write_run_provenance
+from paragvae.run_record import working_tree_dirty, write_run_provenance
 from paragvae.score import evaluate
 from paragvae.study import _degree_and_clustering
 from paragvae.train import undirected_edges
@@ -253,9 +253,14 @@ def analyze(
     patience: int,
     lr: float,
     seeds: tuple[int, ...] = (0, 1),
+    bench_dir: Path | None = None,
+    identity: str | None = None,
 ) -> dict:
     """Train the standard GCN, score node errors, and write charts."""
     _self_check()
+    from paragvae.ds.load import REPO, bench_identity
+
+    dirty = working_tree_dirty(REPO)
     features = np.asarray(features, dtype=np.float32)
     labels = np.asarray(labels, dtype=np.int64)
     if features.ndim != 2 or features.shape[0] != labels.shape[0]:
@@ -367,7 +372,13 @@ def analyze(
         "protocol": protocol,
     }
     (out / "summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
-    _write_readme(out, summary, assoc, frame, protocol, epilogue)
+    header = [f"example: {name}"]
+    if bench_dir is not None:
+        header.append(f"bench_dir: {bench_dir}")
+        if identity is None:
+            identity = bench_identity(bench_dir)
+    if identity:
+        header.append(f"identity: {identity}")
     write_run_provenance(
         out,
         command=f"python examples/DS/{name}/analyze.py",
@@ -377,8 +388,10 @@ def analyze(
             "patience": patience,
             "lr": lr,
         },
-        header=[f"example: {name}"],
+        header=header,
+        dirty=dirty,
     )
+    _write_readme(out, summary, assoc, frame, protocol, epilogue)
     return summary
 
 
@@ -450,11 +463,12 @@ def _write_readme(
             "- `nodes.csv` — one row per node",
             "- `associations.csv` — the table above",
             "- `fits.csv` — F1, ARI, and epochs per seed",
-            "- `provenance.txt` — installed MetaMetro version and pin, MetaMetro commit, ParaGVAE commit",
             "- `error_by_degree.html`, `error_by_boundary.html`, `error_by_class.html`, `associations.html`",
             "",
         ]
     )
+    if (out / "provenance.txt").is_file():
+        lines.insert(-1, "- `provenance.txt` — installed MetaMetro version and pin, MetaMetro commit, ParaGVAE commit")
     if epilogue:
         lines.extend(["", epilogue.strip(), ""])
     (out / "README.md").write_text("\n".join(lines), encoding="utf-8")

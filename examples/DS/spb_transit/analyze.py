@@ -63,6 +63,7 @@ def main() -> None:
             f"Standard edge loss, at most {budget['max_epochs']} epochs, patience {budget['patience']}, "
             f"learning rate {budget['lr']}. Seeds 0 and 1."
         ),
+        bench_dir=graph["bench_dir"],
         **budget,
     )
     import pandas as pd

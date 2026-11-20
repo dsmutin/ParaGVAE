@@ -28,6 +28,19 @@ ROW_PROVENANCE_FIELDS = (
     "metametro_version",
     "metametro_commit",
     "timestamp",
+    "source",
+)
+
+# Paths that count as code when recording dirty. Run outputs under
+# benchmark/ and examples/ are excluded so writing results cannot set the flag.
+CODE_DIRTY_PATHS = (
+    "src",
+    "research",
+    "configs",
+    "scripts",
+    "tests",
+    "pyproject.toml",
+    "VERSION",
 )
 
 
@@ -54,17 +67,27 @@ def recorded_git_commit(value: str, *, what: str) -> str:
     raise ValueError(f"{what} must be a 40-character lowercase hex digest or 'unknown', not {value!r}")
 
 
-def working_tree_dirty(folder: Path) -> bool:
-    """True when ``git status --porcelain`` in ``folder`` is non-empty."""
+def working_tree_dirty(folder: Path, *, paths: tuple[str, ...] = CODE_DIRTY_PATHS) -> str:
+    """Return ``true``, ``false``, or ``unknown`` for uncommitted code changes.
+
+    Only ``paths`` are inspected (code, not ``benchmark/`` or ``examples/``
+    outputs). A git error is recorded as ``unknown``, not as clean.
+    """
     try:
         done = subprocess.run(
-            ["git", "-C", str(folder), "status", "--porcelain"],
-            check=True,
+            ["git", "-C", str(folder), "status", "--porcelain", "--", *paths],
+            check=False,
             capture_output=True,
             text=True,
         )
-    except (OSError, subprocess.CalledProcessError):
-        return False
+    except (OSError, subprocess.SubprocessError):
+        return "unknown"
+    if done.returncode != 0:
+        return "unknown"
+    return "true" if _porcelain_dirty(done) else "false"
+
+
+def _porcelain_dirty(done: subprocess.CompletedProcess) -> bool:
     return bool(done.stdout.strip())
 
 
@@ -75,19 +98,29 @@ def row_provenance_record(
     clustering: str,
     *,
     repo_root: Path | None = None,
+    dirty: str | None = None,
 ) -> dict[str, str]:
-    """Return one per-row provenance record for the current tree."""
+    """Return one per-row provenance record for the current tree.
+
+    ``dirty`` should be computed once at the start of the run. If it is
+    omitted, the code paths of ``repo_root`` are inspected now.
+    """
     root = repo_root or _PACKAGE_ROOT
+    if dirty is None:
+        dirty = working_tree_dirty(root)
+    if dirty not in {"true", "false", "unknown"}:
+        raise ValueError(f"dirty must be true, false, or unknown, not {dirty!r}")
     return {
         "dataset": str(dataset),
         "seed": str(int(seed)),
         "arm": str(arm),
         "clustering": str(clustering),
         "paragvae_commit": recorded_git_commit(git_head(root) or "unknown", what="paragvae_commit"),
-        "dirty": "true" if working_tree_dirty(root) else "false",
+        "dirty": dirty,
         "metametro_version": installed_metametro_version(),
         "metametro_commit": recorded_git_commit(installed_metametro_commit(), what="metametro_commit"),
         "timestamp": datetime.now().astimezone().isoformat(timespec="seconds"),
+        "source": "recorded",
     }
 
 
@@ -165,12 +198,14 @@ def write_run_provenance(
     header: list[str] | None = None,
     footer: list[str] | None = None,
     repo_root: Path | None = None,
+    dirty: str | None = None,
 ) -> None:
     """Write ``provenance.txt`` under ``dest`` for one run.
 
     ``metametro_version`` is the installed package, from
     ``installed_metametro_version``. ``metametro_pin`` is the pin. A commit
-    that cannot be determined is recorded as ``unknown``.
+    that cannot be determined is recorded as ``unknown``. ``dirty`` should be
+    computed once at the start of the run over code paths only.
     """
     import numpy
     import sklearn
@@ -182,6 +217,10 @@ def write_run_provenance(
         if compiler.returncode == 0 and compiler.stdout
         else "g++ not found"
     )
+    if dirty is None:
+        dirty = working_tree_dirty(repo_root or _PACKAGE_ROOT)
+    if dirty not in {"true", "false", "unknown"}:
+        raise ValueError(f"dirty must be true, false, or unknown, not {dirty!r}")
     root = repo_root or _PACKAGE_ROOT
     lines = [GENERATED_HEADER]
     lines.extend(header or [])
@@ -208,7 +247,7 @@ def write_run_provenance(
             f"metametro_pin: {REQUIRED_METAMETRO}",
             f"metametro_commit: {recorded_git_commit(installed_metametro_commit(), what='metametro_commit')}",
             f"paragvae_commit: {recorded_git_commit(git_head(root) or 'unknown', what='paragvae_commit')}",
-            f"dirty: {'true' if working_tree_dirty(root) else 'false'}",
+            f"dirty: {dirty}",
         ]
     )
     lines.extend(footer or [])
