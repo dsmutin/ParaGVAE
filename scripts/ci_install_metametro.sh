@@ -7,7 +7,7 @@
 # copies (pyproject.toml, environment.yml, REQUIRED_METAMETRO) against it.
 set -euo pipefail
 
-PIN=v0.22.1
+PIN=v0.24.0
 ROOT="${RUNNER_TEMP:-${TMPDIR:-/tmp}}/MetaMetro-${PIN}"
 
 if [[ ! -f "${ROOT}/VERSION" ]]; then

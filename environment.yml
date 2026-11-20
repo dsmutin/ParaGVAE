@@ -1,4 +1,4 @@
-# metametro>=0.22.1 is required and is not a conda package.
+# metametro>=0.24.0 is required and is not a conda package.
 # GitHub Actions installs the MetaMetro tag in PIN into this env
 # with scripts/ci_install_metametro.sh after conda env create.
 name: paragvae
