@@ -45,6 +45,9 @@ def _built_heldout(tmp_path: Path) -> Path:
     cdbg = root / "cdbg"
     cdbg.mkdir()
     (cdbg / "metadata.yaml").write_text("kind: cdbg\n", encoding="utf-8")
+    (root / "manifest.yaml").write_text(
+        "bench: bacteria_species_20_heldout\nstatus: built\n", encoding="utf-8"
+    )
     return root
 
 
@@ -220,3 +223,68 @@ def test_main_rerun_recomputes_missing_rows(
     assert len(rows) == len(stale)
     assert all(row["note"] == "bench not built: no cdbg" for row in rows)
     assert all(row["status"] == "missing" for row in rows)
+
+
+def test_main_built_bench_with_deleted_metadata_yaml_raises(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A built bench that loses cdbg/metadata.yaml must stop, not become missing."""
+    import run_registry
+
+    root = _built_heldout(tmp_path / "built")
+    (root / "cdbg" / "metadata.yaml").unlink()
+    assert run_registry._missing_load_reason("heldout_genera", root) is None
+    _patch_main(monkeypatch, tmp_path / "out", {"heldout_genera": root})
+    with pytest.raises(FileNotFoundError, match="cdbg/metadata.yaml"):
+        run_registry.main()
+    assert not (tmp_path / "out" / "results.csv").is_file()
+
+
+def test_main_built_bench_with_deleted_ground_truth_raises(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A built bench that loses ground_truth/ must stop, not become missing."""
+    import shutil
+
+    import run_registry
+
+    root = _built_heldout(tmp_path / "built")
+    shutil.rmtree(root / "ground_truth")
+    assert run_registry._missing_load_reason("heldout_genera", root) is None
+    _patch_main(monkeypatch, tmp_path / "out", {"heldout_genera": root})
+    with pytest.raises(FileNotFoundError, match="ground_truth"):
+        run_registry.main()
+    assert not (tmp_path / "out" / "results.csv").is_file()
+
+
+def test_main_built_bench_with_deleted_assembly_report_raises(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A built bench that loses its assembly report must stop, not become missing."""
+    import run_registry
+
+    root = _built_heldout(tmp_path / "built")
+    report = root.parents[1] / "data" / "raw" / "assembly_data_report.jsonl"
+    report.unlink()
+    assert run_registry._missing_load_reason("heldout_genera", root) is None
+    _patch_main(monkeypatch, tmp_path / "out", {"heldout_genera": root})
+    with pytest.raises(FileNotFoundError, match="assembly report"):
+        run_registry.main()
+    assert not (tmp_path / "out" / "results.csv").is_file()
+
+
+def test_unreadable_status_on_a_graph_directory_raises(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """If manifest status cannot be read, a directory that still looks built is an error."""
+    import run_registry
+
+    root = _built_heldout(tmp_path / "built")
+    (root / "manifest.yaml").unlink()
+    (root / "cdbg" / "metadata.yaml").unlink()
+    assert run_registry._bench_manifest_status(root) is None
+    assert not run_registry._bench_allows_missing(root)
+    _patch_main(monkeypatch, tmp_path / "out", {"heldout_genera": root})
+    with pytest.raises(FileNotFoundError, match="missing row is allowed only"):
+        run_registry.main()
+    assert not (tmp_path / "out" / "results.csv").is_file()

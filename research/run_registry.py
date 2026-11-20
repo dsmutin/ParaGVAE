@@ -97,6 +97,10 @@ def main() -> None:
             rows.extend(csv.DictReader(handle))
     for name, path in paths.items():
         print(f"loading {name}", flush=True)
+        if not _bench_allows_missing(path):
+            damage = _built_bench_damage(name, path)
+            if damage is not None:
+                raise damage
         try:
             graph, bio = load_completion(name, path)
         except FileNotFoundError:
@@ -244,6 +248,53 @@ def _missing(dataset, seed, arm, architecture, n_layers, loss, method, n_nodes, 
     }
 
 
+def _bench_manifest_status(root: Path) -> str | None:
+    """Return ``manifest.yaml`` ``status``, or ``None`` if it cannot be read.
+
+    Uses MetaMetro's ``read_yaml`` when the package is installed. There is no
+    lighter public status-only API; ``check_bench_directory`` also validates
+    the graphs and would itself fail on a damaged built bench.
+    """
+    manifest = Path(root) / "manifest.yaml"
+    if not manifest.is_file():
+        return None
+    try:
+        from paragvae.metametro_path import ensure_metametro
+
+        ensure_metametro()
+        from metametro.tables import read_yaml
+
+        data = read_yaml(manifest)
+    except Exception:
+        return None
+    if not isinstance(data, dict):
+        return None
+    status = str(data.get("status") or "").strip()
+    return status or None
+
+
+def _bench_allows_missing(root: Path) -> bool:
+    """True only when the bench is not built (contract or otherwise unbuilt).
+
+    A missing row is allowed only when ``manifest.status != built``. If the
+    status cannot be read, that is an error unless the directory is clearly a
+    contract/unbuilt layout: a ``contract/`` folder and no graph.
+    """
+    status = _bench_manifest_status(root)
+    if status:
+        return status != "built"
+    folder = Path(root)
+    has_graph = (
+        (folder / "cdbg").is_dir()
+        or (folder / "cgt").is_dir()
+        or (folder / "cfa").is_dir()
+        or (folder / "identity.sha256").is_file()
+    )
+    if has_graph:
+        return False
+    return (folder / "contract").is_dir()
+
+
 def _has_cdbg(root: Path) -> bool:
     """True when the bench has a graph directory (top-level or legacy path)."""
     direct = root / "cdbg"
@@ -266,14 +317,41 @@ def _has_assembly_report(name: str, path: Path) -> bool:
     return report.is_file()
 
 
+def _built_bench_damage(name: str, path: Path) -> FileNotFoundError | None:
+    """Error for a built (or undeclared) bench that is missing a required part."""
+    root = Path(path)
+    parts: list[str] = []
+    if not (root / "ground_truth").is_dir():
+        parts.append("ground_truth/")
+    if not _has_cdbg(root):
+        parts.append("cdbg/metadata.yaml")
+    if not _has_assembly_report(name, root):
+        parts.append("assembly report")
+    if not parts:
+        return None
+    status = _bench_manifest_status(root)
+    if status == "built":
+        prefix = f"{name} has manifest status built but is missing"
+    else:
+        prefix = (
+            f"{name} is missing"
+        )
+    return FileNotFoundError(
+        f"{prefix} {', '.join(parts)} at {root}. "
+        "A missing row is allowed only when the bench manifest status is not built."
+    )
+
+
 def _missing_load_reason(name: str, path: Path) -> str | None:
     """Return a precise reason if a failed load may be recorded as missing.
 
-    A missing row is allowed only when the bench is not built (no ``cdbg/``
-    or no assembly report) or when ``ground_truth/`` is absent. Any other
-    missing file on a built bench must stop the run.
+    A missing row is allowed only when the bench manifest status is not
+    ``built``. On a built bench, a lost ``cdbg/metadata.yaml``, a lost
+    assembly report, or a deleted ``ground_truth/`` must stop the run.
     """
     root = Path(path)
+    if not _bench_allows_missing(root):
+        return None
     parts: list[str] = []
     if not (root / "ground_truth").is_dir():
         parts.append("no ground_truth")
