@@ -44,3 +44,7 @@ Degree and local clustering coefficient, with self-loops ignored. They lower Str
 Average-linkage agglomerative clustering uses the same embedding and the same `k`. VAMB is not in this check.
 
 On Strong100, agglomerative contig F1 is 0.388 and ARI 0.365, against k-means 0.312 and 0.293. On ONT 100M, k-means is higher on both (0.320 / 0.139 vs 0.228 / 0.036). ONT 1B contig F1 is tied near 0.35, and k-means ARI is higher (0.130 vs 0.042). Illumina agglomerative F1 is 0.215 vs 0.165, with ARI 0.012 vs 0.061.
+
+## Completion registry (`phage_x10`)
+
+K-means on the raw 137 features of the rebuilt `phage_x10` bench (identity `78121c1b…564c`), without a GCN, scores contig F1 0.535 and ARI 0.424. That F1 is higher than every GCN arm in `benchmark/registry/results.csv` (the best GCN mean is GAT at 0.504). The figure comes from reviewer 2's probe on that bench (`probe.txt`: unrounded F1 0.5345, ARI 0.4243), not from `results.csv`, which only stores GCN arms. Unlabelled nodes (80 of 983) are excluded from ARI and from contig F1 recall, but they remain in the F1 precision denominator. On the GCN embedding, VAMB fragments into 759 clusters, 635 of them singletons, which is why `gcn/vamb` F1 is 0.021.

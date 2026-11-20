@@ -13,7 +13,13 @@ from sklearn.metrics import adjusted_rand_score
 
 
 def contig_f1(true_labels: np.ndarray, pred_labels: np.ndarray) -> float:
-    """Majority-label precision and recall, returned as their harmonic mean."""
+    """Majority-label precision and recall, returned as their harmonic mean.
+
+    Nodes with a true label below 0 are excluded from recall (they do not
+    enlarge any true-class size). They remain in the precision denominator
+    ``len(pred_labels)``, so unlabelled nodes can still lower F1. ARI, not
+    this function, drops those nodes entirely.
+    """
     true_labels = np.asarray(true_labels)
     pred_labels = np.asarray(pred_labels)
     true_ids = [label for label in np.unique(true_labels) if label >= 0]
@@ -74,7 +80,9 @@ def evaluate(
 
     Pass ``predicted`` to score an already computed clustering, as the
     registry and the DS analysis do. Otherwise the rows are clustered with
-    ``method``. ARI ignores labels below 0; contig F1 is unchanged.
+    ``method``. ARI is computed only on nodes whose labels are at least 0.
+    Contig F1 excludes those unlabelled nodes from recall, but includes
+    every predicted node in the precision denominator.
     """
     labels = np.asarray(labels)
     if predicted is None:

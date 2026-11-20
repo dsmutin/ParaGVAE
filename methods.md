@@ -1,6 +1,6 @@
 # Methods compared
 
-Contig F1 matches clusters to genomes by overlap. ARI is computed on labels at least 0. Neither number is AMBER `f1_score_seq`. K-means uses the number of those labels as `k`. VAMB and HDBSCAN do not. Training stops when held-out edge loss stalls, with at most 60 epochs, patience 8, and learning rate 0.05.
+Contig F1 matches clusters to genomes by overlap. ARI is computed only on labels at least 0. Contig F1 excludes those unlabelled nodes from recall, but counts them in the precision denominator. Neither number is AMBER `f1_score_seq`. K-means uses the number of those labels as `k`. VAMB and HDBSCAN do not. Training stops when held-out edge loss stalls, with at most 60 epochs, patience 8, and learning rate 0.05.
 
 ## Completion run
 
@@ -21,7 +21,7 @@ Contig F1 matches clusters to genomes by overlap. ARI is computed on labels at l
 | joint | linear VAE whose sample is the GCN input; embedding is the concatenation | 0.378 | — | — | — |
 | edge_flip | line graph, then the 2-layer GCN, pooled back to nodes | 0.455 | — | — | — |
 
-The table was recomputed in version 0.7.13 against MetaMetro v0.22.1. `phage_x10` is the `phage_species_5_x10` build (identity `78121c1b…564c`). Its gold is 5 phage species from `load_bench_gold_cgt`; 80 of 983 unitigs have no gold and are not scored. Before 0.7.13 those 80 unitigs were a scored class and the input was a stored CGT, so the old phage numbers are not comparable. `heldout_genera`, `low75half`, and `half100half` are only contract builds here (no `cdbg/`, PAF, or assembly report), so every row is `status=missing` with that reason; no score is carried over. The biological arm is `status=missing` everywhere.
+The table was recomputed in version 0.7.13 against MetaMetro v0.22.1. `phage_x10` is the `phage_species_5_x10` build (identity `78121c1b…564c`). Its gold is 5 phage species from `load_bench_gold_cgt`; 80 of 983 unitigs have no gold. ARI excludes them; contig F1 excludes them from recall but counts them in the precision denominator. Before 0.7.13 those 80 unitigs were a scored class and the input was a stored CGT, so the old phage numbers are not comparable. `heldout_genera`, `low75half`, and `half100half` are not built on this box (no `cdbg/` or assembly report; #1197), so every row is `status=missing` with that reason; no score is carried over. The biological arm is `status=missing` everywhere.
 
 The completion trainer does not read colours. Assembly node features are length, GC, and out-degree. The phage tensor features are the bench k-mer composition and coverage (137 columns). Edge weights are the first edge-feature column when that matrix has a column; the phage matrix has width 0, so those edges are unweighted. Gold taxon on a MetaMetro bench is read with `load_bench_gold_cgt`, not from a colour layer. Held-out assembly labels still come from the accession table and PAF. Colour palettes are not a GCN input. The scored id for the three assemblies is `tax_id` on the `sim` row of `accessions.tsv`. A contig gets that id when the alignment target is the simulated accession. Phage labels are the species gold of the bench.
 

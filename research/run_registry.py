@@ -80,9 +80,12 @@ def main() -> None:
         print(f"loading {name}", flush=True)
         try:
             graph, bio = load_completion(name, path)
-        except FileNotFoundError as exc:
-            print(f"  {name} missing: {exc}", flush=True)
-            rows.extend(_unloaded_rows(name, path, config["seeds"], exc, done))
+        except FileNotFoundError:
+            reason = _missing_load_reason(name, path)
+            if reason is None:
+                raise
+            print(f"  {name} missing: {reason}", flush=True)
+            _upsert(rows, _unloaded_rows(name, path, config["seeds"], reason, done))
             _write(destination, rows)
             continue
         labels = np.asarray(graph.labels)
@@ -101,7 +104,7 @@ def main() -> None:
                 note = ""
                 if loss == "biological":
                     for method in clusterings:
-                        rows.append(_missing(
+                        _upsert(rows, _missing(
                             name, seed, arm, architecture, n_layers, loss, method, features.shape[0], n_edges,
                             "biological loss uses Kraken calls, not the pre-generation read taxid, and is not a training input",
                         ))
@@ -120,7 +123,7 @@ def main() -> None:
                 except Exception as exc:
                     traceback.print_exc()
                     for method in clusterings:
-                        rows.append(_missing(name, seed, arm, architecture, n_layers, loss, method, features.shape[0], n_edges, f"{type(exc).__name__}: {exc}"))
+                        _upsert(rows, _missing(name, seed, arm, architecture, n_layers, loss, method, features.shape[0], n_edges, f"{type(exc).__name__}: {exc}"))
                     _write(destination, rows)
                     continue
                 usable = labels >= 0
@@ -129,10 +132,11 @@ def main() -> None:
                     try:
                         predicted = _cluster(trained.embedding, method, n_groups, int(seed))
                     except Exception as exc:
-                        rows.append(_missing(name, seed, arm, architecture, n_layers, loss, method, features.shape[0], n_edges, f"{type(exc).__name__}: {exc}"))
+                        _upsert(rows, _missing(name, seed, arm, architecture, n_layers, loss, method, features.shape[0], n_edges, f"{type(exc).__name__}: {exc}"))
                         continue
                     scores = evaluate(trained.embedding, labels, method, int(seed), predicted=predicted)
-                    rows.append(
+                    _upsert(
+                        rows,
                         {
                             "dataset": name,
                             "seed": int(seed),
@@ -220,26 +224,63 @@ def _missing(dataset, seed, arm, architecture, n_layers, loss, method, n_nodes, 
     }
 
 
-def _unloaded_rows(name: str, path: Path, seeds, exc: Exception, done: set[tuple]) -> list[dict]:
-    """``status=missing`` rows for every seed, arm, and clustering of a graph that cannot load.
+def _has_cdbg(root: Path) -> bool:
+    """True when the bench has a graph directory (top-level or legacy path)."""
+    direct = root / "cdbg"
+    if (direct / "metadata.yaml").is_file():
+        return True
+    return (root / "work" / "reprofile" / "tocumg" / "cdbg").is_dir()
 
-    A contract-only bench has no ``cdbg/`` and no gold, so nothing is scored.
+
+def _has_assembly_report(name: str, path: Path) -> bool:
+    """True when the held-out assembly report exists, or the name does not use one."""
+    from paragvae.completion import _REPORTS
+
+    filename = _REPORTS.get(name)
+    if filename is None:
+        return True
+    try:
+        report = Path(path).resolve().parents[1] / "data" / "raw" / filename
+    except IndexError:
+        return False
+    return report.is_file()
+
+
+def _missing_load_reason(name: str, path: Path) -> str | None:
+    """Return a precise reason if a failed load may be recorded as missing.
+
+    A missing row is allowed only when the bench is not built (no ``cdbg/``
+    or no assembly report) or when ``ground_truth/`` is absent. Any other
+    missing file on a built bench must stop the run.
     """
-    status = ""
-    manifest = Path(path) / "manifest.yaml"
-    if manifest.is_file():
-        for line in manifest.read_text(encoding="utf-8").splitlines():
-            if line.startswith("status:"):
-                status = line.split(":", 1)[1].strip()
-    prefix = f"bench status {status}; " if status else ""
-    note = f"{prefix}graph not built, not scored: {exc}"
+    root = Path(path)
+    parts: list[str] = []
+    if not (root / "ground_truth").is_dir():
+        parts.append("no ground_truth")
+    if not _has_cdbg(root):
+        parts.append("no cdbg")
+    if not _has_assembly_report(name, root):
+        parts.append("no assembly report")
+    if not parts:
+        return None
+    graph_parts = [part for part in parts if part != "no ground_truth"]
+    if graph_parts:
+        reason = "bench not built: " + ", ".join(graph_parts)
+        if "no ground_truth" in parts:
+            reason += ", no ground_truth"
+        return reason
+    return "no ground_truth"
+
+
+def _unloaded_rows(name: str, path: Path, seeds, reason: str, done: set[tuple]) -> list[dict]:
+    """``status=missing`` rows for every seed, arm, and clustering of a graph that cannot load."""
     rows = []
     for seed in seeds:
         for arm, architecture, n_layers, loss, _flip, clusterings in ARMS:
             for method in clusterings:
                 if (name, int(seed), arm, method) in done:
                     continue
-                rows.append(_missing(name, seed, arm, architecture, n_layers, loss, method, "", "", note))
+                rows.append(_missing(name, seed, arm, architecture, n_layers, loss, method, "", "", reason))
     return rows
 
 
@@ -249,9 +290,29 @@ def _done(path: Path) -> set[tuple]:
     found = set()
     with path.open(encoding="utf-8") as handle:
         for row in csv.DictReader(handle):
+            if row.get("status") != "ok":
+                continue
             found.add((row["dataset"], int(row["seed"]), row["arm"], row["clustering"]))
             found.add((row["dataset"], int(row["seed"]), row["arm"]))
     return found
+
+
+def _row_key(row: dict) -> tuple:
+    return (row["dataset"], int(row["seed"]), row["arm"], row["clustering"])
+
+
+def _upsert(rows: list[dict], new_rows: list[dict] | dict) -> None:
+    """Replace an existing row with the same key, or append."""
+    if isinstance(new_rows, dict):
+        new_rows = [new_rows]
+    index = {_row_key(row): i for i, row in enumerate(rows)}
+    for row in new_rows:
+        key = _row_key(row)
+        if key in index:
+            rows[index[key]] = row
+        else:
+            index[key] = len(rows)
+            rows.append(row)
 
 
 def _write(path: Path, rows: list[dict]) -> None:
