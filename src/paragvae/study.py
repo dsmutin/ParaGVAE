@@ -168,11 +168,11 @@ def coloring_source(graph: StudyGraph, arm: Arm) -> str:
 
     ``composition_kmeans`` is the stored MetaMetro layer on a bench.
     ``kmeans_raw`` means the graph has no bench and ``_features`` computes
-    k-means colours from the raw features. Arms without colours get ``""``.
+    k-means colours from the raw features. Arms without colours get ``none``.
     A bench that lacks the composition layer raises; it does not fall back.
     """
     if not arm.colors:
-        return ""
+        return "none"
     if graph.bench_dir is not None:
         stored = composition_color_matrix(graph)
         if stored.ndim != 2 or stored.shape[1] == 0:
@@ -189,12 +189,6 @@ def _features(graph: StudyGraph, arm: Arm, indptr: np.ndarray, indices: np.ndarr
     parts = [np.asarray(base, dtype=np.float32)]
     if arm.colors:
         if coloring_source(graph, arm) == "kmeans_raw":
-            _warn_once(
-                "kmeans-fallback",
-                graph.name,
-                f"{graph.name} has no bench; "
-                "the colouring arm uses k-means colours from raw features (coloring_source=kmeans_raw).",
-            )
             stored = composition_colors(graph.raw_features, n_colors=8, seed=0)
         else:
             stored = composition_color_matrix(graph)

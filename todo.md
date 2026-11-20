@@ -20,6 +20,8 @@ Scaffold checklist. Check a box only after mandatory tests pass.
 - [x] Provenance records the installed MetaMetro version and the pin separately (version 0.7.14)
 - [x] Provenance reads `metametro.__version__` unmocked and `run_registry` writes `benchmark/registry/provenance.txt` (version 0.7.17)
 - [x] Colouring arm: ``kmeans_raw`` plus warning for graphs without a bench; a bench without composition fails (version 0.7.15)
+- [x] Colouring arm: ``coloring_source=none`` for uncoloured rows; no warning on the standard ``kmeans_raw`` path; colourings rule matches the code (version 0.7.18)
+- [ ] Recompute ``research/*/results.csv`` so rows include ``coloring_source`` (#1201; needs the VAEGbin bundle)
 - [x] Edge line-graph flip (train and infer)
 - [x] Decaying label leakage from an observed-node mask
 - [x] SSL plan plus supervised class-weighted GCN

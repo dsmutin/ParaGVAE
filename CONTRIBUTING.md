@@ -96,9 +96,9 @@ Check that a selected colouring exists on the bench ToCUMG before training. If t
 
 | Value | Meaning |
 |---|---|
-| `""` | The arm does not use colours |
+| `none` | The arm does not use colours |
 | `composition_kmeans` | Stored MetaMetro composition layer on a bench |
-| `kmeans_raw` | No bench; k-means colours from raw features. Warns once (`kmeans-fallback`) |
+| `kmeans_raw` | No bench; k-means colours from raw features (the standard path; the row flag is enough, no warning) |
 
 Use `load_bench_cgt(..., namespaces=...)` to keep the layers an arm needs, after checking those namespaces exist on the graph. Gold labels for a MetaMetro bench come from `load_bench_gold_cgt(bench_dir).node_colors` (row-wise argmax, or `-1` if the row is empty). Do not read `taxon` as a colour namespace.
 

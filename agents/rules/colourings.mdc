@@ -11,4 +11,4 @@ Do not mock a colouring. Train on colour columns MetaMetro already wrote.
 
 Check that a selected colouring exists on the current ToCUMG or CGT. If it is missing, stop.
 
-The colouring arm uses only the `composition` namespace. Load it with `load_bench_cgt(..., namespaces=namespaces_for(("composition_kmeans",)))` after confirming that namespace is on the graph. Do not call `filter_colours` or `load_bench_*` with a namespace the graph lacks; an empty composition layer uses the k-means fallback instead. Gold `taxon` is not a colour namespace; read it with `load_bench_gold_cgt`.
+The colouring arm uses only the `composition` namespace. Load it with `load_bench_cgt(..., namespaces=namespaces_for(("composition_kmeans",)))` after confirming that namespace is on the graph. Do not call `filter_colours` or `load_bench_*` with a namespace the graph lacks. A bench without a `composition_kmeans` layer is an error; it does not fall back to k-means. Graphs with no bench (`mock_cgt`, VAEGbin bundles) use `kmeans_raw`. Gold `taxon` is not a colour namespace; read it with `load_bench_gold_cgt`.

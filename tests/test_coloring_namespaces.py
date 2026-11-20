@@ -105,15 +105,15 @@ def test_bench_without_composition_does_not_fall_back(
         run_arm(graph, arm, seed=0, work=tmp_path / "job", amber="false")
 
     plain = Arm("coloring", "uncoloured", max_epochs=1, patience=1)
-    assert coloring_source(graph, plain) == ""
+    assert coloring_source(graph, plain) == "none"
     row = run_arm(graph, plain, seed=0, work=tmp_path / "plain", amber="false")
-    assert row["coloring_source"] == ""
+    assert row["coloring_source"] == "none"
 
 
 def test_graph_without_a_bench_uses_kmeans_raw(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """mock_cgt / VAEGbin graphs warn once and record coloring_source=kmeans_raw."""
+    """mock_cgt / VAEGbin graphs record coloring_source=kmeans_raw and do not warn."""
     monkeypatch.setattr(study, "_WARNED", set())
     graph = load_metametro_bubble()
     assert graph.bench_dir is None
@@ -122,22 +122,19 @@ def test_graph_without_a_bench_uses_kmeans_raw(
     arm = Arm("coloring", "cgt_colors", colors=True, max_epochs=1, patience=1)
     assert coloring_source(graph, arm) == "kmeans_raw"
     indptr, indices = _topology(graph, arm)
-    with pytest.warns(UserWarning, match="coloring_source=kmeans_raw"):
-        features = _features(graph, arm, indptr, indices)
-    fallback = composition_colors(graph.raw_features, n_colors=8, seed=0)
-    assert features.shape[1] == graph.vae_features.shape[1] + fallback.shape[1]
-    assert np.array_equal(features[:, -fallback.shape[1] :], fallback.astype(np.float32))
-
     import warnings
 
     with warnings.catch_warnings():
         warnings.simplefilter("error")
-        _features(graph, arm, indptr, indices)
+        features = _features(graph, arm, indptr, indices)
         row = run_arm(graph, arm, seed=0, work=tmp_path / "job", amber="false")
+    fallback = composition_colors(graph.raw_features, n_colors=8, seed=0)
+    assert features.shape[1] == graph.vae_features.shape[1] + fallback.shape[1]
+    assert np.array_equal(features[:, -fallback.shape[1] :], fallback.astype(np.float32))
     assert row["coloring_source"] == "kmeans_raw"
 
     plain = Arm("coloring", "uncoloured", max_epochs=1, patience=1)
-    assert coloring_source(graph, plain) == ""
+    assert coloring_source(graph, plain) == "none"
 
 
 def test_run_arm_records_composition_source(foreign_bench: Path, tmp_path: Path) -> None:
@@ -145,3 +142,25 @@ def test_run_arm_records_composition_source(foreign_bench: Path, tmp_path: Path)
     arm = Arm("coloring", "cgt_colors", colors=True, max_epochs=1, patience=1)
     row = run_arm(graph, arm, seed=0, work=tmp_path / "job", amber="false")
     assert row["coloring_source"] == "composition_kmeans"
+
+
+def test_bench_with_composition_produces_no_warnings(
+    foreign_bench: Path, tmp_path: Path, recwarn: pytest.WarningsRecorder
+) -> None:
+    """A bench that already has composition_kmeans must not warn (C5)."""
+    import warnings
+
+    from paragvae import study as study_mod
+
+    study_mod._WARNED.clear()
+    graph = load_metametro_bench(foreign_bench)
+    arm = Arm("coloring", "cgt_colors", colors=True, max_epochs=1, patience=1)
+    indptr, indices = _topology(graph, arm)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        features = _features(graph, arm, indptr, indices)
+        row = run_arm(graph, arm, seed=0, work=tmp_path / "job", amber="false")
+    assert coloring_source(graph, arm) == "composition_kmeans"
+    assert row["coloring_source"] == "composition_kmeans"
+    assert features.shape[1] > graph.vae_features.shape[1]
+    assert not recwarn.list
