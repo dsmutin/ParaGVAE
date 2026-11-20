@@ -78,11 +78,11 @@ Do not copy an evaluation target into graph features or colours. The simulated t
 
 ## MetaMetro tensor
 
-MetaMetro 0.21.0 is a required dependency of this environment. CI installs the pin in `scripts/ci_install_metametro.sh` (tag `v0.21.0`). Do not hard-code a path to its checkout in source, tests, configs, or examples.
+MetaMetro 0.22.0 is a required dependency of this environment. CI installs the pin in `scripts/ci_install_metametro.sh` (tag `v0.22.0`). Do not hard-code a path to its checkout in source, tests, configs, or examples.
 
 Train and score on a MetaMetro coloured graph tensor (`Cgt`). Do not keep a second graph schema, and do not hand-build the CSR, features, or colours that MetaMetro already writes. If the input is still an assembly, CFA, or CDBG, call MetaMetro to produce the tensor, then train on that object.
 
-`paragvae.metametro_path.ensure_metametro` fails when the package is missing or is older than 0.21.0. `training_arrays` is the reader that turns one validated tensor into the arrays the GCN consumes.
+`paragvae.metametro_path.ensure_metametro` fails when the package is missing or is older than 0.22.0. `training_arrays` is the reader that turns one validated tensor into the arrays the GCN consumes.
 
 ## Colourings
 
