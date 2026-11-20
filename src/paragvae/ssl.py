@@ -1,5 +1,3 @@
 """Re-export. The SSL pipeline lives in ``paragvae.models``."""
 
-import paragvae.models.ssl as _impl
-
-globals().update({name: value for name, value in vars(_impl).items() if not name.startswith("__")})
+from paragvae.models.ssl import SupervisedFit, fit_supervised_gcn, require_tools, run_ssl, ssl_plan

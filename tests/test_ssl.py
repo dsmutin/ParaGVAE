@@ -7,13 +7,8 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from paragvae.ssl import (
-    _cgt_after_kraken,
-    _class_weights,
-    fit_supervised_gcn,
-    require_tools,
-    ssl_plan,
-)
+from paragvae.models.ssl import _cgt_after_kraken, _class_weights
+from paragvae.ssl import fit_supervised_gcn, require_tools, ssl_plan
 
 pytestmark = pytest.mark.mandatory
 
@@ -213,7 +208,7 @@ def test_supervised_loss_does_not_require_samovar(monkeypatch: pytest.MonkeyPatc
     def _refuse_lookup(*_args: object, **_kwargs: object) -> None:
         raise AssertionError("fit_supervised_gcn looked up an executable")
 
-    monkeypatch.setattr("paragvae.ssl.shutil.which", _refuse_lookup)
+    monkeypatch.setattr("paragvae.models.ssl.shutil.which", _refuse_lookup)
     features, indptr, indices, labels, mask = _labeled_ring()
     fit = fit_supervised_gcn(
         features,

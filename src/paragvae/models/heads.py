@@ -19,6 +19,9 @@ from typing import NamedTuple
 import numpy as np
 from scipy import sparse
 
+from paragvae.optim import Adam as _Adam
+from paragvae.optim import he_init, zscore
+
 _LEAK = 0.01
 
 
@@ -36,40 +39,13 @@ class HeadFit(NamedTuple):
     edge_index: np.ndarray
 
 
-class _Adam:
-    """Adam with the same moments as the coloured-graph trainer."""
-
-    def __init__(self, lr: float) -> None:
-        self.lr = float(lr)
-        self.t = 0
-        self.m: dict[str, np.ndarray] = {}
-        self.v: dict[str, np.ndarray] = {}
-
-    def step(self, name: str, value: np.ndarray, grad: np.ndarray) -> None:
-        if name not in self.m:
-            self.m[name] = np.zeros_like(value)
-            self.v[name] = np.zeros_like(value)
-        self.m[name] = 0.9 * self.m[name] + 0.1 * grad
-        self.v[name] = 0.999 * self.v[name] + 0.001 * (grad * grad)
-        mhat = self.m[name] / (1.0 - 0.9**self.t)
-        vhat = self.v[name] / (1.0 - 0.999**self.t)
-        value -= self.lr * mhat / (np.sqrt(vhat) + 1e-8)
-
-
 def _zscore(matrix: np.ndarray) -> np.ndarray:
     """Column z-score. A constant column is centered and left unscaled."""
-    values = np.asarray(matrix, dtype=np.float64)
-    if values.shape[1] == 0:
-        return values
-    center = values.mean(axis=0, keepdims=True)
-    scale = values.std(axis=0, keepdims=True)
-    scale[scale < 1e-8] = 1.0
-    return (values - center) / scale
+    return zscore(matrix, dtype=np.float64, eps=1e-8)
 
 
 def _init(rng: np.random.Generator, rows: int, cols: int) -> np.ndarray:
-    scale = np.sqrt(2.0 / max(rows, 1))
-    return rng.normal(0.0, scale, size=(rows, cols)).astype(np.float64)
+    return he_init(rng, rows, cols, dtype=np.float64)
 
 
 def _zeros(cols: int) -> np.ndarray:

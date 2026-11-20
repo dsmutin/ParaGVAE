@@ -11,6 +11,10 @@ from dataclasses import dataclass
 import numpy as np
 from scipy import sparse
 
+from paragvae.optim import Adam as _Adam
+from paragvae.optim import he_init as _init
+from paragvae.optim import zscore as _zscore
+
 
 @dataclass
 class TrainResult:
@@ -21,14 +25,6 @@ class TrainResult:
     stopped_early: bool
     best_val_loss: float
     train_loss: float
-
-
-def _zscore(matrix: np.ndarray) -> np.ndarray:
-    values = np.asarray(matrix, dtype=np.float32)
-    center = values.mean(axis=0, keepdims=True)
-    scale = values.std(axis=0, keepdims=True)
-    scale[scale < 1e-6] = 1.0
-    return (values - center) / scale
 
 
 def undirected_edges(
@@ -160,24 +156,6 @@ def _bce_logits(logit: np.ndarray, target: float) -> tuple[float, np.ndarray]:
     return float(np.mean(loss)), grad
 
 
-class _Adam:
-    def __init__(self, lr: float = 0.01) -> None:
-        self.lr = lr
-        self.t = 0
-        self.m: dict[str, np.ndarray] = {}
-        self.v: dict[str, np.ndarray] = {}
-
-    def step(self, name: str, value: np.ndarray, grad: np.ndarray) -> None:
-        if name not in self.m:
-            self.m[name] = np.zeros_like(value)
-            self.v[name] = np.zeros_like(value)
-        self.m[name] = 0.9 * self.m[name] + 0.1 * grad
-        self.v[name] = 0.999 * self.v[name] + 0.001 * (grad * grad)
-        mhat = self.m[name] / (1 - 0.9**self.t)
-        vhat = self.v[name] / (1 - 0.999**self.t)
-        value -= self.lr * mhat / (np.sqrt(vhat) + 1e-8)
-
-
 def draw_contrastive_negatives(
     positive: np.ndarray,
     n_nodes: int,
@@ -232,11 +210,6 @@ def infonce_loss(
     for slot in range(negatives.shape[1]):
         np.add.at(grad, negatives[:, slot], neg_coeff[:, slot:slot + 1] * left)
     return loss, grad
-
-
-def _init(rng: np.random.Generator, rows: int, cols: int) -> np.ndarray:
-    scale = np.sqrt(2.0 / max(rows, 1))
-    return rng.normal(0.0, scale, size=(rows, cols)).astype(np.float32)
 
 
 def train_gcn(
